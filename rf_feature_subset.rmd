@@ -1,0 +1,151 @@
+---
+title: "Assignment 4"
+author: "Krishna Rao"
+date: "March 13, 2017"
+output: pdf_document
+---
+
+#Problem 1
+##Part A
+```{r}
+rm(list=ls())
+library(ranger)
+library(ggplot2)
+```
+
+
+
+```{r}
+data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+# data=subset(data,select=-c(RWC))
+set.seed(10)
+train.fraction=0.55
+FAM.threshold=0.15
+FAM.cutoff=0.00
+```
+```{r}
+data.high=data[data$FAM>FAM.threshold,]
+data.low=data[data$FAM<=FAM.threshold,]
+train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
+train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
+train.ind=c(train.high.ind,train.low.ind)
+train.data=data[train.ind,]
+test.data=data[-train.ind,]
+testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
+testY=test.data[ , which(names(test.data) %in% c("FAM"))]
+ntree=50
+test.err=double(ntree)
+test.err.low=double(ntree)
+test.err.high=double(ntree)
+
+```
+
+##Part B
+```{r}
+fit=ranger(FAM~.,data=train.data,importance="impurity",seed=10,keep.inbag=TRUE)
+pred=predict(fit,testX,type='se')
+test.data['predicted_FAM']=pred$predictions
+```
+
+##Part C
+```{r}
+# sqrt(test.err[ntree])
+# fit$r.squared #training r squared
+SS.total      <- sum((testY - mean(train.data$FAM))^2)
+SS.residual   <- sum((testY - pred$predictions)^2)
+SS.regression <- sum((pred$predictions - mean(train.data$FAM))^2)
+test.rsq <- 1 - SS.residual/SS.total
+sprintf('R-squared = %0.2f',test.rsq)
+```
+
+
+```{r}
+TitleMargins = function(plot, Tmargin = unit(0, "mm"), Bmargin = unit(0, "mm")) { 
+ library(gtable)
+ library(grid)
+
+ # Get the plot grob
+ g = ggplotGrob(plot)
+
+ # Get the legend
+ index = which(g$layout$name == "guide-box")
+ leg = g$grobs[[index]][[1]][[1]]
+
+ # Get the legend title 
+ title = leg$grobs[[4]]
+
+ # Set up the heights: for the two margins and the original title
+ heights <- unit.c(Tmargin, unit(1, "grobheight", title), Bmargin)
+
+ # Set up a column of three viewports
+ vp <- viewport(layout = grid.layout(3, 1,
+                   heights = heights), name = "vp1")
+
+ # The middle row, where the title text will appear, is named as 'child_vp'.
+ child_vp <- viewport(layout.pos.row = 2, clip = "off", name = "child_vp")
+
+ # Put the title into a gTree containing one grob (the title) and the three viewports
+ TitleText <- gTree(children = gList(title),
+                   vp = vpTree(vp, vpList(child_vp)))
+
+ # Back to the legend: Set height for row 2 of legend to new height of TitleText
+ leg$heights[2] = sum(heights)
+
+ # Add the new TitleText grob to row 2 of legend
+ leg <- gtable_add_grob(leg, TitleText, 
+               t = 2, l = 2, r = 5, name = "TitleText")
+
+ # Remove the original title
+ leg$grobs <- leg$grobs[-4]
+ leg$layout <- leg$layout[-4, ]
+
+ # Put the legend back into the plot
+ g$grobs[[index]][[1]][[1]] = leg
+
+ class(g) =  c("TitleMargins", class(g))
+
+ g
+
+ }
+# A print method for the plot
+print.TitleMargins <- function(x) {
+   grid.newpage()
+   grid.draw(x)
+}
+
+```
+
+```{r, fig.width = 5, fig.height = 4}
+library(dplyr)
+library(SimDesign)
+test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
+bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=TRUE))
+# sprintf('R-squared = %0.2f',test.rsq)
+# sprintf('Relative Bias = %0.2f',bias.model)
+journal_theme=theme(plot.title = element_text(hjust = 0.5),text = element_text(size=13))
+p<-ggplot(data=test.data , aes(x=FAM, y=predicted_FAM, group=1)) +
+  geom_point(aes(color=RWC),shape=19,size=2)+journal_theme+
+  geom_segment(aes(x = 0, y = 0, xend = .4, yend = .4),color='darkgrey',size=0.8)+
+  labs(title='Ensemble model performance',x='Observed fractional \narea of mortlality',y='Predicted fractional \narea of mortality',color='Relative\nwater content')+
+  coord_fixed(ratio = 1, xlim = c(0,0.4), ylim = c(0,0.4), expand = TRUE)+
+  annotate('text',x=0.35,y=0.40,label=paste('1:1 line'),size=3.5)+
+  annotate('text',x=0.05,y=0.35,label=paste('R','^2',' == ',round(test.rsq,2)),size=5,parse=TRUE,hjust=0)+
+  annotate('text',x=0.05,y=0.30,label=paste('Bias',' == ',round(bias.model,2)),size=5,parse=TRUE,hjust=0)
+Tmargin = unit(0, "mm")
+Bmargin = unit(3, "mm")
+TitleMargins(p, Tmargin, Bmargin)
+```
+
+```{r, fig.width = 5, fig.height = 4}
+library(SimDesign)
+test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
+bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=TRUE))
+sprintf('R-squared = %0.2f',test.rsq)
+sprintf('Relative Bias = %0.2f',bias.model)
+```
+
+
+
+
+
+

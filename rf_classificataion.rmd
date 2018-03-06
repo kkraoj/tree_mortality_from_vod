@@ -1,0 +1,113 @@
+---
+title: "Assignment 4"
+author: "Krishna Rao"
+date: "March 13, 2017"
+output: pdf_document
+---
+
+#Problem 1
+##Part A
+```{r}
+rm(list=ls())
+library(ranger)
+library(ggplot2)
+```
+
+
+
+```{r}
+data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+set.seed(10)
+train.fraction=0.7
+FAM.threshold=0.1
+data.high=data[data$FAM>FAM.threshold,]
+data.low=data[data$FAM<=FAM.threshold,]
+train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
+train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
+train.ind=c(train.high.ind,train.low.ind)
+data$FAM=ifelse(data$FAM>FAM.threshold,'yes','no')
+train.data=data[train.ind,]
+test.data=data[-train.ind,]
+testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
+testY=test.data[ , which(names(test.data) %in% c("FAM"))]
+ntree=50
+test.err=double(ntree)
+test.err.low=double(ntree)
+test.err.high=double(ntree)
+# for(i in 1:ntree)
+# {
+#   fit=ranger(FAM~.,data=train.data,num.trees=i,importance="impurity",seed=100,keep.inbag=TRUE)
+#   pred=predict(fit,testX)
+  # test.err[i]=with(testX,mean((testY-pred$predictions)^2))
+# }
+# data_to_plot=data.frame(test.err)
+# colnames(data_to_plot)='test_error'
+# g=ggplot(data_to_plot,aes(x=as.numeric(rownames(data_to_plot)),y=data_to_plot))
+# g+
+#   geom_line(color='chocolate',size=2)+
+#   labs(y='Mean squared test error',x='Number of trees',title='Stabilization of test error')+
+#   theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+
+```
+
+##Part B
+```{r}
+fit=ranger(FAM~.,data=train.data,importance="impurity",seed=100,keep.inbag=TRUE)
+data_to_plot=data.frame(fit$variable.importance)
+colnames(data_to_plot)='importance'
+g=ggplot(data_to_plot,aes(reorder(row.names(data_to_plot),data_to_plot$importance),data_to_plot$importance))
+g+geom_col(fill='dodgerblue3')+coord_flip()+labs(y='Importance',x='Features',title='Feature importance chart')+
+  theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+```
+
+##Part C
+```{r}
+# sqrt(test.err[ntree])
+print(fit$confusion.matrix)
+```
+
+
+
+```{r, fig.width = 10, fig.height = 3}
+# get_density <- function(x, y, n = 100) {
+#   dens <- MASS::kde2d(x = x, y = y, n = n)
+#   ix <- findInterval(x, dens$x)
+#   iy <- findInterval(y, dens$y)
+#   ii <- cbind(ix, iy)
+#   return(dens$z[ii])
+# }
+# require(gridExtra)
+# dat=cbind(test.data,pred$predictions)
+# dat$density <- get_density(dat$RWC, dat$FAM)
+# p1=ggplot(data=dat, aes(x=RWC, y=FAM, group=1)) +
+#   geom_point(aes(color=density))+theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))+
+#   theme(legend.position="none")+
+#   labs(title='')+
+#   # coord_fixed(ratio = 2)+
+#   geom_line(color='brown1',aes(x=RWC,y=pred$predictions))+
+#   geom_ribbon(aes(ymin=ifelse(pred$predictions-pred$se < 0, 0, pred$predictions-pred$se)
+#                     ,ymax=pred$predictions+pred$se,x=RWC,fill='band'),alpha=0.3)
+# dat$density <- get_density(dat$EVP_win, dat$FAM)
+# p2=ggplot(data=dat, aes(x=EVP_win, y=FAM, group=1)) +
+#   geom_point(aes(color=density))+labs(title='Model Predictions',y='',yticks='')+
+#   theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15), 
+#         axis.ticks.y = element_blank(),axis.text.y = element_blank())+
+#   theme(legend.position="none")+
+#   geom_line(color='brown1',aes(x=EVP_win,pred$predictions))+
+#   geom_ribbon(aes(ymin=ifelse(pred$predictions-pred$se < 0, 0, pred$predictions-pred$se)
+#                     ,ymax=pred$predictions+pred$se,x=EVP_win,fill='band'),alpha=0.3)
+#     # coord_fixed(ratio = 30)
+# dat$density <- get_density(dat$elevation_std, dat$FAM)
+# p3=ggplot(data=dat, aes(x=elevation_std, y=FAM, group=1)) +
+#   geom_point(aes(color=density))+theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))+
+#   geom_line(aes(x=elevation_std,pred$predictions),colour='brown1')+
+#   theme(legend.position="none",axis.ticks.y = element_blank(),axis.text.y = element_blank())+
+#   labs(title='',y='')+
+#   geom_ribbon(aes(ymin=ifelse(pred$predictions-pred$se < 0, 0, pred$predictions-pred$se)
+#                     ,ymax=pred$predictions+pred$se,x=elevation_std,fill='band'),alpha=0.3)+
+#   annotate('text',x=700,y=0.35,label=paste('R','^2',' == ',round(fit$r.squared,2)),size=6,parse=TRUE)
+# grid.arrange(p1,p2,p3,ncol=3)
+```
+
+  
+  

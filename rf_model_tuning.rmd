@@ -1,0 +1,126 @@
+---
+title: "Assignment 4"
+author: "Krishna Rao"
+date: "March 13, 2017"
+output: pdf_document
+---
+
+#Problem 1
+##Part A
+```{r}
+rm(list=ls())
+library(ranger)
+library(ggplot2)
+write.files = 1
+```
+
+
+
+```{r}
+data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+set.seed(10)
+FAM.cutoff=0.00
+max.iter=10
+imp.frame=data.frame(row.names=1:(dim(data)[2]-1))
+counter=0
+train.r.squared=-1
+for (train.fraction in seq(0.3,0.8,0.1))
+{
+  for (FAM.threshold in seq(0.0,0.15,0.01))
+  {
+    data.high=data[data$FAM>FAM.threshold,]
+    data.low=data[data$FAM<=FAM.threshold,]
+    train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
+    train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
+    train.ind=c(train.high.ind,train.low.ind)
+    train.data=data[train.ind,]
+    test.data=data[-train.ind,]
+    testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
+    testY=test.data[ , which(names(test.data) %in% c("FAM"))]
+    for (seed in 1:max.iter)
+    {
+      fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 100)
+      imp=data.frame(fit$variable.importance)
+      colnames(imp)=counter
+      imp.frame=cbind(imp.frame,imp)
+      if (fit$r.squared > train.r.squared)
+        train.r.squared = fit$r.squared
+        pred=predict(fit,testX,type='se')
+        SS.total      <- sum((testY - mean(train.data$FAM))^2)
+        SS.residual   <- sum((testY - pred$predictions)^2)
+        SS.regression <- sum((pred$predictions - mean(train.data$FAM))^2)
+        test.rsq <- 1 - SS.residual/SS.total
+      counter=counter+1
+    }
+  }
+}
+test.data['predicted_FAM']=pred$predictions # last model's predictions
+row.names(imp.frame)=row.names(imp)
+importance.mean=data.frame(apply(imp.frame, 1, mean))
+colnames(importance.mean)='mean'
+importance.sd=data.frame(apply(imp.frame, 1, sd))
+colnames(importance.sd)='sd'
+importance=cbind(importance.mean,importance.sd)
+importance=importance[order(-importance$mean),]
+```
+
+```{r, fig.width = 8, fig.height = 4}
+g=ggplot(importance,aes(x=reorder(row.names(importance),importance$mean),y=mean))
+g+geom_col(fill='dodgerblue3')+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd))+
+  coord_flip()+
+  labs(y='Importance',x='Features',title='Feature importance chart')+
+  theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+```
+
+
+```{r, fig.width = 4, fig.height = 4}
+library(dplyr)
+journal_theme=theme(plot.title = element_text(hjust = 0.5),text = element_text(size=12), legend.position=c(0.12,0.75))
+p<-ggplot(data=test.data, aes(x=FAM, y=predicted_FAM, group=1))
+p+geom_point(aes(color=RWC),shape=19,size=2)+journal_theme+
+  geom_segment(aes(x = 0, y = 0, xend = .4, yend = .4),color='darkgrey',size=0.8)+
+  labs(x='Observed FAM',y='Predicted FAM',color='RWC',title='Test set performance')+
+  coord_fixed(ratio = 1, xlim = c(1e-4,0.4), ylim = c(1e-4,0.4), expand = TRUE)+
+  # scale_x_log10()+
+  # scale_y_log10()+
+  annotate('text',x=0.35,y=0.40,label=paste('1:1 line'))+
+  annotate('text',x=0.35,y=0.27,label=paste('R ^ 2 ==',round(test.rsq,2)),parse = T,size=5,color='maroon')
+  # annotate('text',x=0.4,y=0.22,label=paste('Omitted',drops[1]),size=5,color='maroon',hjust=1)
+```
+
+```{r, fig.width = 5, fig.height = 4}
+library(SimDesign)
+test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
+bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=TRUE))
+sprintf('Test R-squared = %0.2f',test.rsq)
+sprintf('Relative Bias = %0.2f',bias.model)
+``` 
+
+```{r}
+data['predicted_FAM']=predict(fit,data[-c(1)])$predictions
+test.data['predicted_FAM']=predict(fit,test.data[-c(1)])$predictions
+```
+
+```{r importance rank frequency, eval=False}
+rank = colnames(t(imp.frame))[max.col(t(imp.frame),ties.method="first")]
+rank=table(rank)
+rank=data.frame(rank,row.names=1)
+rank$Freq=rank$Freq/sum(rank$Freq)
+g=ggplot(rank,aes(x=reorder(row.names(rank),rank$Freq),y=Freq))
+g+geom_col(fill='dodgerblue3')+
+  # geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd))+
+  coord_flip()+
+  labs(x='Features',y='Fraction of experiments feature is most important',title='Top most ranked features')+
+  theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+```
+
+```{r write files}
+if (write.files)
+  {
+  write.csv(data, file = "D:/Krishna/Project/data/rf_predicted.csv")
+  write.csv(test.data, file = "D:/Krishna/Project/data/rf_test_data.csv")
+  write.csv(importance, file = "D:/Krishna/Project/data/rf_sensitivity_importance.csv")
+  write.csv(rank, file = "D:/Krishna/Project/data/rf_sensitivity_rank.csv")
+  }
+```

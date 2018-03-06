@@ -1,0 +1,93 @@
+---
+title: "Assignment 4"
+author: "Krishna Rao"
+date: "March 13, 2017"
+output: pdf_document
+---
+
+#Problem 1
+##Part A
+```{r}
+rm(list=ls())
+library(ranger)
+library(ggplot2)
+```
+
+
+
+```{r}
+data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+set.seed(10)
+FAM.cutoff=0.00
+max.iter=10
+imp.frame=data.frame(row.names=1:(dim(data)[2]-1))
+counter=0
+for (train.fraction in seq(0.3,0.8,0.1))
+{
+  for (FAM.threshold in seq(0.0,0.15,0.01))
+  {
+    data.high=data[data$FAM>FAM.threshold,]
+    data.low=data[data$FAM<=FAM.threshold,]
+    train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
+    train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
+    train.ind=c(train.high.ind,train.low.ind)
+    train.data=data[train.ind,]
+    for (i in 1:max.iter)
+    {
+      fit=ranger(FAM~.,data=train.data,importance="impurity",seed=i,keep.inbag=TRUE)
+      imp=data.frame(fit$variable.importance)
+      colnames(imp)=counter
+      imp.frame=cbind(imp.frame,imp)
+      counter=counter+1
+    }
+  }
+}
+# train.fraction = 0.55
+# for (FAM.threshold in seq(0.0,0.15,0.01))
+# {
+#   data.high=data[data$FAM>FAM.threshold,]
+#   data.low=data[data$FAM<=FAM.threshold,]
+#   train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
+#   train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
+#   train.ind=c(train.high.ind,train.low.ind)
+#   train.data=data[train.ind,]
+#   for (i in 1:max.iter)
+#   {
+#     fit=ranger(FAM~.,data=train.data,importance="impurity",seed=i,keep.inbag=TRUE)
+#     imp=data.frame(fit$variable.importance)
+#     colnames(imp)=counter
+#     imp.frame=cbind(imp.frame,imp)
+#     counter=counter+1
+#   }
+# 
+# }
+row.names(imp.frame)=row.names(imp)
+importance.mean=data.frame(apply(imp.frame, 1, mean))
+colnames(importance.mean)='mean'
+importance.sd=data.frame(apply(imp.frame, 1, sd))
+colnames(importance.sd)='sd'
+importance=cbind(importance.mean,importance.sd)
+importance=importance[order(-importance$mean),]
+  
+g=ggplot(importance,aes(x=reorder(row.names(importance),importance$mean),y=mean))
+g+geom_col(fill='dodgerblue3')+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd))+
+  coord_flip()+
+  labs(y='Importance',x='Features',title='Feature importance chart')+
+  theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+write.csv(importance, file = "D:/Krishna/Project/data/rf_sensitivity_importance.csv")
+```
+
+```{r}
+# rank = colnames(t(imp.frame))[max.col(t(imp.frame),ties.method="first")]
+# rank=table(rank)
+# rank=data.frame(rank,row.names=1)
+# rank$Freq=rank$Freq/sum(rank$Freq)
+# g=ggplot(rank,aes(x=reorder(row.names(rank),rank$Freq),y=Freq))
+# g+geom_col(fill='dodgerblue3')+
+#   # geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd))+
+#   coord_flip()+
+#   labs(x='Features',y='Fraction of experiments feature is most important',title='Top most ranked features')+
+#   theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
+# # write.csv(rank, file = "D:/Krishna/Project/data/rf_sensitivity_rank.csv")
+```
