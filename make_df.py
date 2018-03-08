@@ -13,7 +13,7 @@ import arcpy
 import pandas as pd
 import numpy as np
 from dirs import Dir_mort, Dir_CA
-year_range=range(2016,2018)
+year_range=range(2015,2016)
 date_range=range(1,366,1)
 map_factor=1e4
 os.chdir(Dir_CA)
@@ -31,7 +31,7 @@ for year in year_range:
         data=pd.DataFrame(np.full(nos,np.nan).reshape(1, nos), \
                           columns=old_Df.columns,\
                           index = [pd.to_datetime('%s%03d'%(year,date),format='%Y%j')])
-        fname="VOD_stats_%s_%03d_%s" %(year,date,pass_type)
+        fname="VOD_LPDR2_stats_%s_%03d_%s" %(year,date,pass_type)
         if  arcpy.Exists(fname):
             cursor = arcpy.SearchCursor(fname)
             for row in cursor:
@@ -39,8 +39,8 @@ for year in year_range:
                          ,row.getValue('gridID')]=\
                          row.getValue('MEAN')/map_factor# grid ID is 1 to 370
             Df=pd.concat([Df,data],axis=0)
-Df=pd.concat([old_Df,Df],axis=0)
-store['vod_pm']=Df
+#Df=pd.concat([old_Df,Df],axis=0)
+store['vod_pm_LPDR2']=Df
 store.close()
          
             

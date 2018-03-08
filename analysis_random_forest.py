@@ -35,23 +35,23 @@ def rf_remove_nan(df):
 #    df.index=range(df.shape[0])
     return df
 
-#input_sources=['mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
-#'LAI_025_grid_win','RWC_extended', 'aspect_mean', 'aspect_std', 'canopy_height',\
-# 'cwd','elevation_mean','elevation_std',\
-# 'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
-# 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
-#'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
-##year_range=range(2009,2016)
-
-## sources till 2016 available
-input_sources=['mortality_025_grid','LAI_025_grid_sum',\
-'LAI_025_grid_win','RWC_extended', 'aspect_mean', 'aspect_std', 'canopy_height',\
- 'elevation_mean','elevation_std',\
+input_sources=['mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
+'LAI_025_grid_win','RWC', 'aspect_mean', 'aspect_std', 'canopy_height',\
+ 'cwd','elevation_mean','elevation_std',\
  'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
  'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
 'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
+year_range=range(2009,2016)
 
-year_range=range(2009,2017)
+## sources till 2016 available
+#input_sources=['mortality_025_grid','LAI_025_grid_sum',\
+#'LAI_025_grid_win','RWC_extended', 'aspect_mean', 'aspect_std', 'canopy_height',\
+# 'elevation_mean','elevation_std',\
+# 'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+# 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
+#'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
+
+#year_range=range(2009,2017)
 
 #input_sources=['mortality_025_grid','LAI_025_grid_sum',\
 #'LAI_025_grid_win','RWC', 'aspect_mean', 'aspect_std', 'canopy_height',\

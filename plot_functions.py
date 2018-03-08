@@ -25,6 +25,10 @@ from matplotlib.patches import Rectangle
 from datetime import timedelta
 import types
 from matplotlib.ticker import FormatStrFormatter
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+
+
 #
 cardinal='#BD2031'
 zoom=2.0
@@ -36,6 +40,9 @@ plotsettings.Set('EcolLett')
 for x in fontsizes:
     plotsettings.journals.journals['EcolLett']['rcParams'][x]=fs
 #mpl.rcParams['font.size'] = 32
+journal='EcolLett'
+start_year=2009
+end_year=2015
 def plot_settings(zoom=zoom):
 #    sns.set(font_scale=zoom*1.2/1.5)
 #    mpl.rcParams['font.size'] = 32
@@ -299,6 +306,9 @@ def plot_boxplot(data_source1='mortality_%03d_grid',data_source2='RWC',data_sour
     ax.tick_params(axis='x',which='both', bottom='off')
     ax.set_ylabel(data_label3)
     data.T.plot(kind='box',color='k',ax=ax)
+    mean_shift=(data[data.index.year==2015].mean(axis=1)[0]-data[data.index.year==2014].mean(axis=1)[0])/\
+    data[data.index.year==2015].mean(axis=1)[0]*100
+    print('mean change in %s from 2014 to 2015 = %0.2f %%'%(data_label3,mean_shift))
     ax.grid(axis='x')    
     ax=axs[2]
     data=store[data_source1%grid_size]
@@ -310,6 +320,9 @@ def plot_boxplot(data_source1='mortality_%03d_grid',data_source2='RWC',data_sour
     xtl=[item.get_text()[:4] for item in ax.get_xticklabels()]
     ax.set_xticklabels(xtl)
     ax.set_ylim(-0.01,0.15)
+    mean_shift=(data[data.index.year==2015].mean(axis=1)[0]-data[data.index.year==2014].mean(axis=1)[0])/\
+    data[data.index.year==2015].mean(axis=1)[0]*100
+    print('mean change in %s from 2014 to 2015 = %0.2f %%'%(data_label1,mean_shift))
 #    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
     publishable.panel_labels(fig = fig, position = 'outside', case = 'lower',
             prefix = '', suffix = '.', fontweight = 'bold')        
@@ -394,10 +407,13 @@ def plot_regression(var1='FAM', var1_range=[-0.02, 0.42],\
     cbaxes.annotate('RWC',xy=(0,1.2), xycoords='axes fraction',\
                 ha='left')
     cb.outline.set_visible(False)
-    ax.annotate('$R^2_{test}=$0.45', xy=(0.98, 0.57), xycoords='axes fraction',\
+    slope, intercept, r_value, p_value, std_err = stats.linregress(Df[var1],Df[var2])
+    ax.annotate('$R^2_{test}=$%0.2f'%r_value**2, xy=(0.85, 0.95), xycoords='axes fraction',\
                 ha='right',va='top')
-    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
-                ha='right',va='top',color='grey')
+#    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
+#                ha='right',va='top',color='grey')
+    rms = sqrt(mean_squared_error(Df[var1], Df[var2]))/np.linalg.norm(Df[var1])*100
+    print('RMSE = %0.2f %%'%rms)
 
 def plot_importance(journal='EcolLett'):
     publishable = plotsettings.Set(journal)
@@ -786,19 +802,61 @@ def plot_rsq_subset(journal='EcolLett'):
     ax.set_xlabel('Feature removed')
     ax.set_title('Backward selection')
     
+def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label='VOD, LPDRv2',\
+               var_range=[0.5,2.2]):
+    publishable = plotsettings.Set(journal)
+    os.chdir(Dir_CA)
+    store=pd.HDFStore('data_subset.h5')
+    Df1=store['vod_pm']
+    Df1=Df1.loc[Df1.index.year == 2015]
+    Df1=Df1.mask(Df1==np.nan)
+    Df2=store['vod_pm_LPDR2']
+    publishable.set_figsize(0.5*zoom, 0.5*zoom, aspect_ratio =1)
+    sns.set_style('ticks')
+    x=Df1.values.flatten()
+    y=Df2.values.flatten()
+    inds=~np.isnan(x)
+    x,y=x[inds],y[inds]
+    inds=~np.isnan(y)
+    x,y=x[inds],y[inds]
+#    cmap = sns.cubehelix_palette(as_cmap=True, dark=0, light=1, reverse=True)
+    fig, ax = plt.subplots()
+    sns.kdeplot(x,y, cmap='PuRd', n_levels=60, shade=True,ax=ax,clip=var_range)
+
+##    x,y,z=clean_xy(Df1,Df2)
+#    ax.scatter(Df1,Df2,marker='o',c='k',cmap=cmap,s=scatter_size,alpha=0.5)
+    ax.set_xlim(var_range)
+    ax.set_ylim(var_range)
+    ax.set_xlabel(var1_label)
+    ax.set_ylabel(var2_label)
+    ax.plot(var_range,var_range,color='grey',lw=0.6)
+#    cbaxes = fig.add_axes([0.2, 0.50, 0.1, 0.24])
+#    cb=fig.colorbar(plot,ax=ax,\
+#                    ticks=[min(z)+0.1*max(z), 0.9*max(z)],cax=cbaxes)
+#    cb.ax.set_yticklabels(['Low', 'High'])
+#    cb.ax.tick_params(axis='y', right='off')
+#    cbaxes.annotate('RWC',xy=(0,1.2), xycoords='axes fraction',\
+#                ha='left')
+#    cb.outline.set_visible(False)
+#    ax.annotate('$R^2_{test}=$0.45', xy=(0.98, 0.57), xycoords='axes fraction',\
+#                ha='right',va='top')
+#    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
+#                ha='right',va='top',color='grey')
+    
 
 def main():
-    plot_RWC_definition()
+#    plot_RWC_definition()
 #    plot_rwc_cwd()
 #    plot_boxplot()
 #    plot_timeseries_maps()
 #    plot_importance()
 #    plot_leaf_habit()
 ##    plot_FAM_TPA_corr()
-#    plot_regression()
+    plot_regression()
 ##    plot_pdf()
 #    plot_grid()
 #    plot_heatmap()
+#    plot_LPDR2()
 
 if __name__ == '__main__':
     main()
