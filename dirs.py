@@ -295,3 +295,41 @@ def subset_forest_cov(Df):
     fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx')
     Df=Df[fc.gridID]
     return Df
+
+def append_color_importance(Df):
+    green = '#1b9e77'
+    brown = '#d95f02'
+    blue = '#7570b3'
+    climate=['cwd','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+             'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
+            'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
+    veg=['mortality_025_grid','live_basal_area','LAI_sum',\
+            'LAI_win','RWC','canopy_height','forest_cover',]
+    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std']
+    Df['color']=None
+    Df.loc[Df.index.isin(climate),'color']=blue
+    Df.loc[Df.index.isin(veg),'color']=green
+    Df.loc[Df.index.isin(topo),'color']=brown
+    return Df
+
+def adjust_spines(ax, spines):
+    for loc, spine in ax.spines.items():
+        if loc in spines:
+            spine.set_position(('outward', 10))  # outward by 10 points
+            spine.set_smart_bounds(True)
+        else:
+            spine.set_color('none')  # don't draw spine
+
+    # turn off ticks where there is no spine
+    if 'left' in spines:
+        ax.yaxis.set_ticks_position('left')
+#    else:
+        # no yaxis ticks
+#        ax.yaxis.set_ticks([])
+
+    if 'bottom' in spines:
+        ax.xaxis.set_ticks_position('bottom')
+#    else:
+        # no xaxis ticks
+#        ax.xaxis.set_ticks([])
+        

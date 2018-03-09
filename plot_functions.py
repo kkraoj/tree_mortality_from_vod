@@ -17,11 +17,12 @@ import matplotlib.dates as mdates
 from scipy import stats
 from matplotlib_scalebar.scalebar import ScaleBar
 from dirs import Dir_CA, Dir_mort, get_marker_size, import_mort_leaf_habit, clean_xy,\
-                    piecewise_linear,append_prediction, subset_forest_cov
+                    piecewise_linear,append_prediction, subset_forest_cov, \
+                    append_color_importance, adjust_spines
 from matplotlib import ticker
 from mpl_toolkits.basemap import Basemap
 from scipy import optimize
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Patch
 from datetime import timedelta
 import types
 from matplotlib.ticker import FormatStrFormatter
@@ -31,8 +32,8 @@ from math import sqrt
 
 #
 cardinal='#BD2031'
-zoom=2.0
-fs=24
+zoom=1.0
+fs=12
 fontsizes=['font.size','lines.markersize',
  'legend.fontsize',
  'axes.labelsize','xtick.labelsize','ytick.labelsize']
@@ -412,25 +413,33 @@ def plot_regression(var1='FAM', var1_range=[-0.02, 0.42],\
                 ha='right',va='top')
 #    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
 #                ha='right',va='top',color='grey')
-    rms = sqrt(mean_squared_error(Df[var1], Df[var2]))/np.linalg.norm(Df[var1])*100
-    print('RMSE = %0.2f %%'%rms)
+    rms = sqrt(mean_squared_error(Df[var1], Df[var2]))
+    print('RMSE = %0.4f'%rms)
 
-def plot_importance(journal='EcolLett'):
+def plot_importance():
     publishable = plotsettings.Set(journal)
     os.chdir(Dir_CA)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_sensitivity_importance.csv',index_col=0)   
     zoom=plot_settings()
-    publishable.set_figsize(1.6*zoom, 1.5*zoom, aspect_ratio =1)
+    publishable.set_figsize(.8*zoom, 1.5*zoom, aspect_ratio =1)
     sns.set_style('whitegrid')
     Df=Df.sort_values('mean')
-    
+    Df=append_color_importance(Df)
     fig, ax = plt.subplots()
-    plot=Df['mean'].plot.barh(width=0.8,color='grey',xerr=Df['sd'],\
+    plot=Df['mean'].plot.barh(width=0.8,color=Df.color,xerr=Df['sd'],\
            error_kw=dict(ecolor='k', lw=1, capsize=2, capthick=1),ax=ax)
 #    ax.tick_params(axis='y', left='off',pad=-1)
-    ax.set_xlabel('Importance (-)')
+    ax.set_xlabel('Relative Importance (-)')
     ax.yaxis.grid(False)
-
+    green = '#1b9e77'
+    brown = '#d95f02'
+    blue = '#7570b3'
+    legend_elements = [Patch(facecolor=green, edgecolor=None,label='Vegetation'),\
+                       Patch(facecolor=brown, edgecolor=None,label='Topography'),\
+                        Patch(facecolor=blue, edgecolor=None,label='Climate')]
+    ax.legend(handles=legend_elements,frameon=True, title='Variable Type')
+    
+    
 def plot_FAM_TPA_corr(var1='mortality_%03d_grid', var1_range=[-0.02, 0.42],\
                          var1_label="Observed FAM (-)",\
                     var2='TPA_%03d_grid', var2_range=[-0.6, 13],\
@@ -625,7 +634,7 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
         scatter_size=4
     publishable = plotsettings.Set(journal)
     zoom=plot_settings()
-    sns.set_style("whitegrid")
+    sns.set_style("ticks")
     os.chdir(Dir_CA)
     store=pd.HDFStore('data_subset.h5')
     mort=store[mort%(grid_size)]
@@ -643,6 +652,7 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
               (data2.index.year<=end_year)]     
     
     publishable.set_figsize(2*zoom, 1*zoom, aspect_ratio = 1)
+    #_-------------------------------------------------------------------------------
     fig, axs = plt.subplots(nrows=1,ncols=2,sharey='row')
     plt.subplots_adjust(wspace=0.10)
     ax=axs[0]
@@ -673,11 +683,13 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ss_tot = np.sum((y-np.mean(y))**2)
     r_squared = 1 - (ss_res / ss_tot)
     print('R-squared for RWC = %0.2f'%(r_squared))
-    ax.annotate('Dry', xy=(0, -0.14), xycoords='axes fraction',color=cardinal)
-    ax.annotate('Wet', xy=(0.9, -0.14), xycoords='axes fraction',color='dodgerblue')
+    ax.annotate('Dry', xy=(0, -0.25), xycoords='axes fraction',color='sienna')
+    ax.annotate('Wet', xy=(0.9, -0.25), xycoords='axes fraction',color='dodgerblue')
+    adjust_spines(ax,['left','bottom'])
+    #_-------------------------------------------------------------------------------
     ax=axs[1]
-    ax.annotate('Dry', xy=(0.9, -0.14), xycoords='axes fraction',color=cardinal)
-    ax.annotate('Wet', xy=(0, -0.14), xycoords='axes fraction',color='dodgerblue')
+    ax.annotate('Dry', xy=(0.9, -0.25), xycoords='axes fraction',color='sienna')
+    ax.annotate('Wet', xy=(0,-0.25), xycoords='axes fraction',color='dodgerblue')
     x=data2.values.flatten()
     y=mort.values.flatten()
     x,y,z=clean_xy(x,y)
@@ -713,6 +725,7 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     publishable.panel_labels(fig = fig, position = 'outside', case = 'lower',
                                                  prefix = '', suffix = '.', fontweight = 'bold')
     cb.outline.set_visible(False)
+    adjust_spines(ax,['bottom'])
     
 def plot_grid(data='data',journal='EcolLett',color='#BD2031'):
     publishable = plotsettings.Set(journal)
@@ -846,13 +859,13 @@ def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label
 
 def main():
 #    plot_RWC_definition()
-#    plot_rwc_cwd()
+    plot_rwc_cwd()
 #    plot_boxplot()
 #    plot_timeseries_maps()
 #    plot_importance()
 #    plot_leaf_habit()
 ##    plot_FAM_TPA_corr()
-    plot_regression()
+#    plot_regression()
 ##    plot_pdf()
 #    plot_grid()
 #    plot_heatmap()
