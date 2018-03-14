@@ -156,7 +156,7 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
     plt.show()
     return cb0
 #==============================================================================
-def plot_leaf_habit(data='RWC',data_label="RWC (-)",\
+def plot_leaf_habit_thresh(data='RWC',data_label="RWC (-)",\
                     mort_label='FAM (-)',\
                     mort='mortality_%03d_grid', data_range=[0,1],mort_range=[0,0.7],\
                     grid_size=25,cmap='viridis',\
@@ -833,6 +833,7 @@ def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label
     inds=~np.isnan(y)
     x,y=x[inds],y[inds]
 #    cmap = sns.cubehelix_palette(as_cmap=True, dark=0, light=1, reverse=True)
+    publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)    
     fig, ax = plt.subplots()
     sns.kdeplot(x,y, cmap='PuRd', n_levels=60, shade=True,ax=ax,clip=var_range)
 
@@ -856,14 +857,47 @@ def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label
 #    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
 #                ha='right',va='top',color='grey')
     
+def plot_leaf_habit_mort(xlabel='evergreen', ylabel='deciduous',cmap='inferno',alpha=1,scatter_size=10,\
+                         var1_label = 'Evergreen FAM', var2_label='Deciduous FAM',var_range=[-0.03,0.7],\
+                        FAM_thresh=0.02):
+    publishable = plotsettings.Set(journal)
+    os.chdir(Dir_CA)
+#    store=pd.HDFStore('data_subset.h5')
+    
+    x=import_mort_leaf_habit(species=xlabel).values.flatten()
+    y=import_mort_leaf_habit(species=ylabel).values.flatten()
+    
+    x,y,z=clean_xy(x,y)
+    inds=np.where(y>=FAM_thresh)[0]
+    x=x.take(inds)  ;y=y.take(inds)
+    inds=np.where(x>=FAM_thresh)[0]
+    x=x.take(inds)  ;y=y.take(inds)
+    x,y,z=clean_xy(x,y)
+    sns.set_style('ticks')   
+    publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
+#    cmap=sns.cubehelix_palette(light=1, reverse=True, as_cmap=True)
+    
+    r2=np.corrcoef(x,y)[0,1]
+    print(r2)
+    fig, ax = plt.subplots()
+    ax.scatter(x,y,c=z,edgecolor='',cmap=cmap,alpha=alpha,marker='s',s=scatter_size)
+    ax.set_xlim(var_range)
+    ax.set_ylim(var_range)
+    ax.set_xlabel(var1_label)
+    ax.set_ylabel(var2_label)
+    ax.plot(var_range,var_range,color='grey',lw=0.6)
+    ax.annotate('$R^2=$%0.2f'%r2, xy=(0.1, 0.95), xycoords='axes fraction',\
+                ha='left',va='top')
+#    sns.kdeplot(x,y, cmap='PuRd', n_levels=60, shade=True,ax=ax)
 
 def main():
 #    plot_RWC_definition()
-    plot_rwc_cwd()
+#    plot_rwc_cwd()
 #    plot_boxplot()
 #    plot_timeseries_maps()
 #    plot_importance()
-#    plot_leaf_habit()
+#    plot_leaf_habit_thresh()
+    plot_leaf_habit_mort()
 ##    plot_FAM_TPA_corr()
 #    plot_regression()
 ##    plot_pdf()

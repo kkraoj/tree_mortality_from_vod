@@ -21,8 +21,8 @@ os.chdir(MyDir+'/LPDR_v2/VOD_matrix') # location of VOD matrix
 store=pd.HDFStore('VOD_LPDR_v2.h5') #this is your store or marketplace of vod files for all dates
 
 param='VOD'
-year=2011
-date=343
+year=2014
+date=245
 pass_type='A'
 
 filename='%s_%s_%s_%03d'%(param,pass_type,year,date)
@@ -38,7 +38,12 @@ def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
     marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
     return marker_size
 
-enlarge=1
+enlarge=1.5
+font = {'family' : 'normal',
+        'size'   : 22}
+#mpl.rc('font', **font)
+sns.set(font_scale=2)
+#mpl.rcParams.update({'font.size': 22})
 latcorners=np.array([-70,70])
 loncorners=np.array([-180,180])
 #lats, lons = np.mgrid[90:-90:-0.25, -180:180:0.25]
