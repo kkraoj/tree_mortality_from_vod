@@ -17,8 +17,8 @@ import matplotlib.dates as mdates
 from scipy import stats
 from matplotlib_scalebar.scalebar import ScaleBar
 from dirs import Dir_CA, Dir_mort, get_marker_size, import_mort_leaf_habit, clean_xy,\
-                    piecewise_linear,append_prediction, subset_forest_cov, \
-                    append_color_importance, adjust_spines
+                    piecewise_linear,append_prediction, \
+                    append_color_importance, adjust_spines,supply_lat_lon
 from matplotlib import ticker
 from mpl_toolkits.basemap import Basemap
 from scipy import optimize
@@ -28,6 +28,7 @@ import types
 from matplotlib.ticker import FormatStrFormatter
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 #
@@ -41,34 +42,32 @@ plotsettings.Set('EcolLett')
 for x in fontsizes:
     plotsettings.journals.journals['EcolLett']['rcParams'][x]=fs
 #mpl.rcParams['font.size'] = 32
-journal='EcolLett'
+
 start_year=2009
 end_year=2015
-def plot_settings(zoom=zoom):
-#    sns.set(font_scale=zoom*1.2/1.5)
-#    mpl.rcParams['font.size'] = 32
-#    zoom = zoom
-    return(zoom)
-#    publishable = plotsettings.Set(journal)
-#    publishable.set_figsize(2, 1, aspect_ratio = 1)    
+filename = 'data_subset_GC.h5'
+append_prediction(filename=filename)
+
+journal='EcolLett'
+publishable = plotsettings.Set(journal)
 
 def flatten_diagonally(npA, diagonals = None):
     diagonals = diagonals or xrange(-npA.shape[0] + 1, npA.shape[1])
     return np.concatenate(map(lambda x: \
           np.diagonal(np.rot90(npA), offset = x), diagonals))
 
-def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
-                         var1_label="Observed FAM",\
-                    var2='predicted_FAM', var2_range=[1e-5, 0.4],\
-                     var2_label="Predicted FAM",\
+def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.40],\
+                         var1_label="Observed",\
+                    var2='predicted_FAM', var2_range=[1e-5, 0.40],\
+                     var2_label="Predicted",\
                     grid_size=25,cmap='inferno_r',cmap2='inferno_r', \
                     start_month=7,months_window=3,ticks=5,\
                     title='Timeseries of observed and predicted mortality',proj='cyl',\
                     journal='EcolLett'):
     os.chdir(Dir_CA)
 #    sns.set(font_scale=1.2)
-    mpl.rcParams['font.size'] = 15
-    store=pd.HDFStore('data_subset.h5')
+#    mpl.rcParams['font.size'] = 15
+    store=pd.HDFStore(filename)
     data_label=var2_label
     alpha=0.7
     mort_label=var1_label
@@ -76,32 +75,29 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
 #    mort=mort[mort>0]
     mort=mort[(mort.index.year>=start_year) &\
               (mort.index.year<=end_year)]
-    pred_mort=append_prediction()
+    pred_mort=append_prediction(filename=filename)
     year_range=mort.index.year
     cols=mort.shape[0]
     rows=2
     latcorners=np.array([33,42.5])
     loncorners=np.array([-124.5,-117]) 
-    zoom=plot_settings()
     if grid_size==25:
-        grids=Dir_mort+'/CA_proc.gdb/grid_subset'
         marker_factor=7*zoom
     elif grid_size==5:
-        grids=Dir_mort+'/CA_proc.gdb/smallgrid'
         marker_factor=2
-    lats = [row[0] for row in arcpy.da.SearchCursor(grids, 'x')]
-    lons = [row[0] for row in arcpy.da.SearchCursor(grids, 'y')]
-    zoom=plot_settings()
-    sns.set_style("white")
-    publishable = plotsettings.Set(journal)
+    lats,lons=supply_lat_lon()
+
+    sns.set_style("ticks")
     
     publishable.set_figsize(2*zoom, 1*zoom, aspect_ratio = 1)
     fig, axs = plt.subplots(nrows=rows,ncols=cols   ,\
                             sharey='row')
     marker_size=get_marker_size(axs[0,0],fig,loncorners,grid_size,marker_factor)
+    #    parallels = np.arange(*latcorners+2,step=5)
+#    meridians = np.arange(*loncorners+1.5,step=5)
+
     plt.subplots_adjust(wspace=0.04,hspace=0.04,top=0.83)
-    parallels = np.arange(*latcorners+2,step=5)
-    meridians = np.arange(*loncorners+1.5,step=5)
+
     for year in year_range:   
         mort_plot=mort[mort.index.year==year]
         ax=axs[0,year-year_range[0]]
@@ -113,7 +109,7 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
                 llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
                 ax=ax)
         m.readshapefile(Dir_CA+'/CA','CA',drawbounds=True, color='black')
-        plot_mort=m.scatter(lats, lons,s=marker_size,c=mort_plot,cmap=cmap,\
+        plot_mort=m.scatter(lons, lats,s=marker_size,c=mort_plot,cmap=cmap,\
                             marker='s',\
                             vmin=var1_range[0],vmax=var1_range[1],\
                             norm=mpl.colors.PowerNorm(gamma=1./2.)\
@@ -130,7 +126,7 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
                 llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
                 ax=ax)
         m.readshapefile(Dir_CA+'/CA','CA',drawbounds=True, color='black')
-        plot_data=m.scatter(lats, lons,s=marker_size,c=data_plot,cmap=cmap2\
+        plot_data=m.scatter(lons, lats,s=marker_size,c=data_plot,cmap=cmap2\
                            ,marker='s',vmin=var2_range[0],vmax=var2_range[1],\
                            norm=mpl.colors.PowerNorm(gamma=1./2.)\
                                                   )
@@ -144,6 +140,8 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
     cb0.locator = tick_locator
     cb0.update_ticks()
     cb0.set_ticks(np.linspace(var1_range[0],var1_range[1] ,ticks))
+    cb0.ax.annotate('FAM (-)',xy=(0,1.03),xycoords='axes fraction',\
+                    ha='left',va='bottom',size=fs)
     axs[0,0].set_ylabel(mort_label)
     axs[1,0].set_ylabel(data_label)
 #    fig.suptitle(title)
@@ -151,8 +149,8 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.4],\
 #                                                 prefix = '', suffix = '.', fontweight = 'bold')
     scalebar = ScaleBar(100*1e3*1.05,box_alpha=0,sep=2,location='lower left') # 1 pixel = 0.2 meter
 #    ax.add_artist(scalebar)
-    ax.annotate('CA State', xy=(0.1, 0), xycoords='axes fraction',\
-                    ha='left',va='bottom',size=16)
+    ax.annotate('California', xy=(0.1, 0), xycoords='axes fraction',\
+                    ha='left',va='bottom',size=fs*0.7)
     plt.show()
     return cb0
 #==============================================================================
@@ -173,15 +171,13 @@ def plot_leaf_habit_thresh(data='RWC',data_label="RWC (-)",\
     
     sns.set_style("whitegrid")
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     mort=store[mort%(grid_size)]
     mort=mort[(mort.index.year>=start_year) &\
               (mort.index.year<=end_year)]
     data=store[data]
     data=data[(data.index.year>=start_year) &\
               (data.index.year<=end_year)]    
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()
     publishable.set_figsize(0.76*zoom, 1.7*zoom, aspect_ratio = 1)
     fig, axs = plt.subplots(nrows=2,ncols=1,sharex='col')
     plt.subplots_adjust(hspace=0.25)
@@ -265,11 +261,9 @@ def plot_boxplot(data_source1='mortality_%03d_grid',data_source2='RWC',data_sour
                             data_label3='CWD (mm)',\
                             grid_size=25,\
                             start_month=7,months_window=3,journal='EcolLett'):
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()
     sns.set_style("ticks")
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     
 #    data=store[data_source1]
 #    data=data[(data.index.year>=start_year) &\
@@ -332,7 +326,6 @@ def plot_boxplot(data_source1='mortality_%03d_grid',data_source2='RWC',data_sour
 def plot_pdf(data_source1='vod_pm',data_source2='RWC',data_source3='cwd',\
                             \
                             start_month=7,months_window=3,journal='EcolLett'):
-    publishable = plotsettings.Set(journal)
     sns.set_style("ticks")
     os.chdir(Dir_CA)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_data.csv',index_col=0)
@@ -342,7 +335,6 @@ def plot_pdf(data_source1='vod_pm',data_source2='RWC',data_source3='cwd',\
      'forest_cover','ppt_sum','tmax_sum',\
      'tmean_sum','vpdmax_sum','EVP_sum',\
     'PEVAP_sum','vsm_sum','RWC']
-    zoom=plot_settings()
     Df.drop('dominant_leaf_habit',axis=1,inplace=True)
 #    Df=Df.loc[:,Df.columns.isin(input_sources)]
     ordered_sources=((Df.quantile(0.75)-Df.quantile(0.25))/Df.max()).\
@@ -370,9 +362,9 @@ def plot_pdf(data_source1='vod_pm',data_source2='RWC',data_source3='cwd',\
     ax.annotate('Normalized range',xy=(0.5,-1.3), xycoords='axes fraction',\
                 ha='center',va='top')
     
-def plot_regression(var1='FAM', var1_range=[-0.02, 0.42],\
+def plot_regression(var1='FAM', var_range=[-0.02, 0.42],\
                          var1_label="Observed FAM (-)",\
-                    var2='predicted_FAM', var2_range=[-0.02, 0.42],\
+                    var2='predicted_FAM',\
                      var2_label="Predicted FAM (-)",\
                     grid_size=25,cmap='PuOr', \
                     ticks=5,\
@@ -386,30 +378,34 @@ def plot_regression(var1='FAM', var1_range=[-0.02, 0.42],\
         grids=Dir_mort+'/CA_proc.gdb/smallgrid'
         marker_factor=2
         scatter_size=4
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()
     os.chdir(Dir_CA)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_%s.csv'%dataset,index_col=0)   
     publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
     sns.set_style('ticks')
+    test_rsq=pd.read_csv('D:/Krishna/Project/data/rf_test_rsq.csv',index_col=0).loc[1,'x']  
     fig, ax = plt.subplots()
     z=Df['RWC']
-    plot=ax.scatter(Df[var1],Df[var2],marker='s',c=z,cmap=cmap,s=scatter_size)
-    ax.set_xlim(var1_range)
-    ax.set_ylim(var2_range)
+    plot=ax.scatter(Df[var1],Df[var2],marker='s',c=z,cmap=cmap,s=scatter_size,\
+                    vmin=0,vmax=1)
+
     ax.set_xlabel(var1_label)
     ax.set_ylabel(var2_label)
-    ax.plot(var1_range,var2_range,color='grey',lw=0.6)
-    cbaxes = fig.add_axes([0.2, 0.50, 0.1, 0.24])
-    cb=fig.colorbar(plot,ax=ax,\
-                    ticks=[min(z)+0.1*max(z), 0.9*max(z)],cax=cbaxes)
-    cb.ax.set_yticklabels(['Low', 'High'])
-    cb.ax.tick_params(axis='y', right='off')
-    cbaxes.annotate('RWC',xy=(0,1.2), xycoords='axes fraction',\
+    ax.set_xticks(np.linspace(0,0.4,5))
+    ax.set_yticks(np.linspace(0,0.4,5))
+    plt.axis('equal')
+    ax.plot(var_range,var_range,color='grey',lw=0.6)
+    ax.set_xlim(var_range)
+    ax.set_ylim(var_range)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(plot, cax=cax)
+#    cax.set_yticklabels(['Low', 'High'])
+#    cax.tick_params(axis='y', right='off')
+    cax.annotate('RWC',xy=(0,1.04), xycoords='axes fraction',\
                 ha='left')
-    cb.outline.set_visible(False)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(Df[var1],Df[var2])
-    ax.annotate('$R^2_{test}=$%0.2f'%r_value**2, xy=(0.85, 0.95), xycoords='axes fraction',\
+#    cb.outline.set_visible(False)
+#    slope, intercept, r_value, p_value, std_err = stats.linregress(Df[var1],Df[var2])
+    ax.annotate('$R^2_{test}=%0.2f$'%test_rsq, xy=(0.85, 0.95), xycoords='axes fraction',\
                 ha='right',va='top')
 #    ax.annotate('1:1 line', xy=(0.9, 0.97), xycoords='axes fraction',\
 #                ha='right',va='top',color='grey')
@@ -417,16 +413,14 @@ def plot_regression(var1='FAM', var1_range=[-0.02, 0.42],\
     print('RMSE = %0.4f'%rms)
 
 def plot_importance():
-    publishable = plotsettings.Set(journal)
     os.chdir(Dir_CA)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_sensitivity_importance.csv',index_col=0)   
-    zoom=plot_settings()
     publishable.set_figsize(.8*zoom, 1.5*zoom, aspect_ratio =1)
     sns.set_style('whitegrid')
     Df=Df.sort_values('mean')
     Df=append_color_importance(Df)
     fig, ax = plt.subplots()
-    plot=Df['mean'].plot.barh(width=0.8,color=Df.color,xerr=Df['sd'],\
+    Df['mean'].plot.barh(width=0.8,color=Df.color,xerr=Df['sd'],\
            error_kw=dict(ecolor='k', lw=1, capsize=2, capthick=1),ax=ax)
 #    ax.tick_params(axis='y', left='off',pad=-1)
     ax.set_xlabel('Relative Importance (-)')
@@ -448,12 +442,10 @@ def plot_FAM_TPA_corr(var1='mortality_%03d_grid', var1_range=[-0.02, 0.42],\
                     ticks=5,\
                     title='Regression of observed and predicted mortality',proj='cyl',\
                     journal='EcolLett',alpha=0.6):
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()
     os.chdir(Dir_CA)  
     publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
     sns.set_style('ticks')
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     var1=store[var1%grid_size]
     var2=store[var2%grid_size]
     var1=var1[(var1.index.year>=start_year) &\
@@ -487,7 +479,6 @@ def plot_FAM_TPA_corr(var1='mortality_%03d_grid', var1_range=[-0.02, 0.42],\
     return r_value**2
     
 def plot_importance_rank(journal='EcolLett'):
-    publishable = plotsettings.Set(journal)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_sensitivity_rank.csv',index_col=0)   
     publishable.set_figsize(1, 0.5, aspect_ratio =1)
     sns.set_style('ticks')
@@ -505,10 +496,9 @@ def plot_PET_AET(data_source1='vod_pm',data_source2='RWC',data_source3='cwd',\
                             data_label3='CWD',\
                             \
                             start_month=7,months_window=3,journal='EcolLett'):
-    publishable = plotsettings.Set(journal)
     sns.set_style("ticks")
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     data=store[data_source1]
     data=data[(data.index.year>=start_year) &\
       (data.index.year<=end_year)]  
@@ -576,10 +566,9 @@ def plot_RWC_definition(data_source1='vod_pm',data_source2='RWC',\
                             \
                             start_month=7,months_window=3,journal='EcolLett'\
                             ,alpha1=0.2,color='#BD2031',alpha2=0.7):
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()*1.5
+    zoom=1.5
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     data=store[data_source1]
     data=data[(data.index.year>=start_year) &\
       (data.index.year<=end_year)]  
@@ -623,7 +612,7 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
                     mort='mortality_%03d_grid',\
                     grid_size=25,cmap='viridis', \
                     \
-                    alpha=0.7):
+                    alpha=1):
     if grid_size==25:
         grids=Dir_mort+'/CA_proc.gdb/grid'
         marker_factor=7
@@ -632,22 +621,17 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
         grids=Dir_mort+'/CA_proc.gdb/smallgrid'
         marker_factor=2
         scatter_size=4
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings()
     sns.set_style("ticks")
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     mort=store[mort%(grid_size)]
-    mort=subset_forest_cov(mort)
     mort=mort[(mort.index.year>=start_year) &\
               (mort.index.year<=end_year)]
     mort_range=[0,mort.values.max()*1.1]
     data1=store[data1]
-    data1=subset_forest_cov(data1)
     data1=data1[(data1.index.year>=start_year) &\
               (data1.index.year<=end_year)] 
     data2=store[data2]
-    data2=subset_forest_cov(data2)
     data2=data2[(data2.index.year>=start_year) &\
               (data2.index.year<=end_year)]     
     
@@ -664,7 +648,7 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     x,y,z=clean_xy(x,y)
     plot_data=ax.scatter(x,y,c=z,edgecolor='',cmap=cmap,alpha=alpha,marker='s',s=scatter_size)
     ax.set_ylabel(mort_label)
-    guess=(0.01,0.05,1e-4,1e-2)
+    guess=(0.08,0.02,1e-4,1e-2)
     popt , pcov = optimize.curve_fit(piecewise_linear, x, y, guess)
     perr = np.sqrt(np.diag(pcov))
     xd = np.linspace(min(x), max(x), 1000)
@@ -693,10 +677,12 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     x=data2.values.flatten()
     y=mort.values.flatten()
     x,y,z=clean_xy(x,y)
-    plot2_data=ax.scatter(x,y,c=z,edgecolor='',cmap=cmap,alpha=alpha,marker='s',s=scatter_size)
+    plot2_data=ax.scatter(x,y,c=z,edgecolor='',cmap=cmap,alpha=alpha,marker='s',s=scatter_size,\
+                          vmin=min(z),vmax=max(z))
+    print('min = %0.2f, max = %0.2f'%(min(z),max(z)))
     ax.set_xlabel(data2_label)
 #    ax.set_ylabel(mort_label)
-    guess=(500,0.05,1e-4,1e-2)
+    guess=(600,0.05,1e-4,1e-2)
     popt , pcov = optimize.curve_fit(piecewise_linear, x, y, guess)
     perr = np.sqrt(np.diag(pcov))
     xd = np.linspace(min(x), max(x), 1000)
@@ -715,25 +701,27 @@ def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ss_tot = np.sum((y-np.mean(y))**2)
     r_squared = 1 - (ss_res / ss_tot)
     print('R-squared for CWD = %0.2f'%(r_squared))
-    cbaxes = fig.add_axes([0.38, 0.5, 0.04, 0.18])
-    cb=fig.colorbar(plot2_data,ax=axs[1],\
-                    ticks=[min(z)+0.1*max(z), 0.9*max(z)],cax=cbaxes)
-    cb.ax.set_yticklabels(['Low', 'High'])
-    cb.ax.tick_params(axis='y', right='off')
-    cbaxes.annotate('Point\ndensity',xy=(0,1.2), xycoords='axes fraction',\
+#    cbaxes = fig.add_axes([0.38, 0.5, 0.04, 0.18])
+#    cb=fig.colorbar(plot2_data,ax=axs[1],\
+#                    ticks=[min(z)+0.1*max(z), 0.9*max(z)],cax=cbaxes)
+    
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(plot2_data, cax=cax,ticks=[min(z),max(z)])
+    cax.annotate('Point\ndensity',xy=(0,1.04), xycoords='axes fraction',\
                 ha='left')
+    cax.set_yticklabels(['Low', 'High'])
+    cax.tick_params(axis='y', right='off',pad=0)
     publishable.panel_labels(fig = fig, position = 'outside', case = 'lower',
                                                  prefix = '', suffix = '.', fontweight = 'bold')
-    cb.outline.set_visible(False)
+#    cb.outline.set_visible(False)
     adjust_spines(ax,['bottom'])
     
 def plot_grid(data='data',journal='EcolLett',color='#BD2031'):
-    publishable = plotsettings.Set(journal)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_%s.csv'%data,index_col=0)  
     Df.drop('dominant_leaf_habit',axis=1,inplace=True)
     importance=pd.read_csv('D:/Krishna/Project/data/rf_sensitivity_importance.csv',index_col=0)[:-1]
     input_sources=importance.index.tolist()
-#    zoom=plot_settings()
     sns.set_style('ticks') 
     publishable.set_figsize(2*zoom, 2.05*zoom, aspect_ratio =1)
     fig, axs = plt.subplots(5,5,sharey='row')
@@ -765,14 +753,12 @@ def shift_labels(ax,SHIFT=0.5):
                                     label, mpl.text.Text )
         
 def plot_heatmap(data='data',journal='EcolLett',cmap="YlGnBu"):
-    publishable = plotsettings.Set(journal)
     Df=pd.read_csv('D:/Krishna/Project/data/rf_%s.csv'%data,index_col=0)   
     corr=Df.corr()  
     blank=["ppt_win","tmax_sum","tmax_win", "tmean_sum",\
            "tmean_win","vpdmax_sum","vpdmax_win","EVP_sum",\
            "PEVAP_sum","PEVAP_win","EVP_win"]
 #    corr.loc[:3,blank]=np.NaN
-    zoom=plot_settings(1.0)
     sns.set_style('white')
     publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
     inds=sns.clustermap(corr,figsize=(1e-10,1e-10)\
@@ -798,8 +784,6 @@ def plot_heatmap(data='data',journal='EcolLett',cmap="YlGnBu"):
 #    ax.tick_params(axis='both', pad=-1,color='lightgrey')
     
 def plot_rsq_subset(journal='EcolLett'):
-    publishable = plotsettings.Set(journal)
-    zoom=plot_settings(1.0)
     sns.set_style('whitegrid')
     publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
     labels=['None'	,'tmean_sum',	'PEVAP_win',	\
@@ -817,9 +801,8 @@ def plot_rsq_subset(journal='EcolLett'):
     
 def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label='VOD, LPDRv2',\
                var_range=[0.5,2.2]):
-    publishable = plotsettings.Set(journal)
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     Df1=store['vod_pm']
     Df1=Df1.loc[Df1.index.year == 2015]
     Df1=Df1.mask(Df1==np.nan)
@@ -860,9 +843,8 @@ def plot_LPDR2(cmap='plasma',scatter_size=10,var1_label='VOD, LPDRv1',var2_label
 def plot_leaf_habit_mort(xlabel='evergreen', ylabel='deciduous',cmap='inferno',alpha=1,scatter_size=10,\
                          var1_label = 'Evergreen FAM', var2_label='Deciduous FAM',var_range=[-0.03,0.7],\
                         FAM_thresh=0.02):
-    publishable = plotsettings.Set(journal)
     os.chdir(Dir_CA)
-#    store=pd.HDFStore('data_subset.h5')
+#    store=pd.HDFStore(filename)
     
     x=import_mort_leaf_habit(species=xlabel).values.flatten()
     y=import_mort_leaf_habit(species=ylabel).values.flatten()
@@ -890,20 +872,46 @@ def plot_leaf_habit_mort(xlabel='evergreen', ylabel='deciduous',cmap='inferno',a
                 ha='left',va='top')
 #    sns.kdeplot(x,y, cmap='PuRd', n_levels=60, shade=True,ax=ax)
 
+def plot_ever_deci(cmap=sns.cubehelix_palette(as_cmap=True, dark=0, light=1, reverse=False)):
+    os.chdir('D:/Krishna/Project')
+    Df=pd.read_excel('working_tables.xlsx',sheetname='gc_ever_deci',index_col=1)   
+    publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
+    sns.set_style('ticks')
+    fig, ax = plt.subplots()
+    ax.set_xlim([0,1])
+    ax.set_ylim([0,1])
+    ax.set_xticks([0,0.25,0.5,0.75,1])
+    ax.set_yticks([0,0.25,0.5,0.75,1])
+    sns.kdeplot(Df['evergreen'],Df['deciduous'], cmap=cmap, n_levels=60, shade=True,ax=ax)
+    ax.scatter(Df['evergreen'],Df['deciduous'],c="w", s=30, linewidth=0.5, marker="+")
+    ax.collections[0].set_alpha(0)
+    ax.set_xlabel('Evergreen woody cover')
+    ax.set_ylabel('Deciduous woody cover')
+    Df.loc[abs(Df['evergreen']-Df['deciduous'])<=0.25].index # get grid IDS where difference less than 0.25
+
+    # add fill between code
+    x = np.arange(0.0, 2, 0.01)
+    y1 = x-0.25
+    y2 = x+0.25
+    ax.fill_between(x, y1, y2,alpha=0.4,color='grey')
+            
+
+            
 def main():
-#    plot_RWC_definition()
-#    plot_rwc_cwd()
-#    plot_boxplot()
-#    plot_timeseries_maps()
-#    plot_importance()
+    plot_RWC_definition(data_source1='vod_pm') #main
+#    plot_rwc_cwd() #main
+#    plot_boxplot() #supplementary
+#    plot_timeseries_maps() #main
+#    plot_importance() #main
 #    plot_leaf_habit_thresh()
-    plot_leaf_habit_mort()
-##    plot_FAM_TPA_corr()
-#    plot_regression()
-##    plot_pdf()
-#    plot_grid()
-#    plot_heatmap()
+#    plot_leaf_habit_mort()
+#    plot_FAM_TPA_corr() #supplementary
+#    plot_regression() #main
+#    plot_pdf() #supplementary
+#    plot_grid() #supplementary
+#    plot_heatmap() #supplementary
 #    plot_LPDR2()
+#    plot_ever_deci()
 
 if __name__ == '__main__':
     main()

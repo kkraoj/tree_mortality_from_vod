@@ -248,7 +248,7 @@ mpl.rcParams['font.size'] = 15
 #                   index=['Season median','upper cutoff','lower cutoff','RWC'])
 #    Df=pd.concat([Df,output_values],axis='columns') 
 #Df.columns.name='upper cutoff percentile' 
-display(HTML(data.head().to_html()))
+#display(HTML(data.head().to_html()))
 #sns.set_style('darkgrid')  
 #alpha=0.5
 #fig, ax = plt.subplots(1,1,figsize=(3,3))                 
@@ -293,14 +293,14 @@ display(HTML(data.head().to_html()))
 
 ### maps with only variables
 #inputs
-store=pd.HDFStore('data_subset.h5')
-data=(store['RWC_extended']) 
+store=pd.HDFStore('data_subset_GC.h5')
+data=(store['RWC_v2']) 
 grid_size=25
 start_year=2009
-data_label="Relative water\ncontent"
+data_label="RWC"
 cmap='viridis'
 alpha=0.7
-mort_label='Fractional area\nof mortality'
+mort_label='FAM'
 
 #----------------------------------------------------------------------
 mort=store['mortality_%03d_grid'%(grid_size)]
@@ -324,16 +324,13 @@ tree_max=np.nanmax(mort.iloc[:, :].values)
 fig_width=zoom*cols
 fig_height=1.5*zoom*rows
 if grid_size==25:
-    grids=Dir_mort+'/CA_proc.gdb/grid_subset'
     marker_factor=7
     scatter_size=20
 elif grid_size==5:
-    grids=Dir_mort+'/CA_proc.gdb/smallgrid'
     marker_factor=2
     scatter_size=4
+lats,lons=supply_lat_lon('GC_subset')
 
-lats = [row[0] for row in arcpy.da.SearchCursor(grids, 'x')]
-lons = [row[0] for row in arcpy.da.SearchCursor(grids, 'y')]
 sns.set_style("white")
 fig, axs = plt.subplots(nrows=rows,ncols=cols,figsize=(fig_width,fig_height),\
                         sharey='row')
@@ -348,7 +345,7 @@ for year in year_range:
             llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
             ax=ax)
     m.readshapefile(Dir_CA+'/CA','CA',drawbounds=True, color='black')
-    plot_mort=m.scatter(lats, lons,s=marker_size,c=mort_plot,cmap='inferno_r',\
+    plot_mort=m.scatter(lons,lats,s=marker_size,c=mort_plot,cmap='inferno_r',\
                         marker='s',\
                         vmin=tree_min,vmax=tree_max,\
                         norm=mpl.colors.PowerNorm(gamma=1./2.)\
@@ -361,22 +358,21 @@ for year in year_range:
             llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
             ax=ax)
     m.readshapefile(Dir_CA+'/CA','CA',drawbounds=True, color='black')
-    plot_data=m.scatter(lats, lons,s=marker_size,c=data_plot,cmap=cmap\
+    plot_data=m.scatter(lons,lats,s=marker_size,c=data_plot,cmap=cmap\
                        ,marker='s',vmin=0.0,vmax=1.0)
     #-------------------------------------------------------------------
     
 cb0=fig.colorbar(plot_mort,ax=axs[0,:].ravel().tolist(), fraction=0.01,\
                  aspect=20,pad=0.02)
-tick_locator = ticker.MaxNLocator(nbins=7)
-cb0.locator = tick_locator
-cb0.update_ticks()
+#tick_locator = ticker.MaxNLocator(nbins=7)
+#cb0.locator = tick_locator
+#cb0.update_ticks()
 cb0.set_ticks(np.linspace(0,0.6 ,7))
 cb1=fig.colorbar(plot_data,ax=axs[1,:].ravel().tolist(), fraction=0.01,\
                  aspect=20,pad=0.02)
 
 
 cb1.set_ticks(np.linspace(0.2,0.8,4))
-cb1.set_ticklabels(np.linspace(0.2,0.8,4))
 axs[0,0].set_ylabel(mort_label)
 axs[1,0].set_ylabel(data_label)
 #fig.suptitle('Timeseries maps of mortality and indicators')

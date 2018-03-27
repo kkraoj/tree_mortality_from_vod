@@ -22,6 +22,9 @@ os.chdir(Dir_CA)
 #mort.index=[x[-4:] for x in mort.index] 
 #mort.index=pd.to_datetime(mort.index,format='%Y')
 #mort.fillna(0,inplace=True)
+#mort.index.name = 'FAM_gross'
+#store['mort']=mort
+#store.close()
 #store_major['mortality_025_grid']=mort
 #
 #store = pd.HDFStore(Dir_CA+'/vodDf.h5')#ascending is 1:30 PM
@@ -197,7 +200,7 @@ os.chdir(Dir_CA)
 #store.remove('/RWC_lag_1_lag_2')
 ##--------------------------------------------------------
 ###changing denominator to live - dead
-#store=pd.HDFStore(Dir_CA+'/data.h5')
+#store=pd.HDFStore(Dir_CA+'/data_subset.h5')
 #Df=store['mortality_025_grid']
 #Df=subset_forest_cov(Df) # removing cells with <0.7 tree cover
 #dr=Df.shift(1)
@@ -235,7 +238,7 @@ os.chdir(Dir_CA)
 
 ####---------------------------------------------------
 #extending all other dfs to 2016
-store=pd.HDFStore(Dir_CA+'/data_subset.h5')
+#store=pd.HDFStore(Dir_CA+'/data_subset.h5')
 #input_sources=['mortality_025_grid','LAI_025_grid_sum',\
 #'LAI_025_grid_win','RWC_extended', 'aspect_mean', 'aspect_std', 'canopy_height',\
 # 'elevation_mean','elevation_std',\
@@ -260,10 +263,10 @@ store=pd.HDFStore(Dir_CA+'/data_subset.h5')
 ## fixing the issue here
 #super_store=pd.HDFStore(Dir_CA+'/data.h5')
 ##copying from original h5 file
-source_with_missing_2016=['mortality_025_grid','LAI_025_grid_sum',\
-'LAI_025_grid_win','ppt_sum','ppt_win','tmax_sum','tmax_win',\
- 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
-'PEVAP_sum','EVP_win','PEVAP_win']
+#source_with_missing_2016=['mortality_025_grid','LAI_025_grid_sum',\
+#'LAI_025_grid_win','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+# 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
+#'PEVAP_sum','EVP_win','PEVAP_win']
 #
 #for source in source_with_missing_2016:
 #    store[source]=super_store[source]
@@ -286,3 +289,99 @@ source_with_missing_2016=['mortality_025_grid','LAI_025_grid_sum',\
 #Df.index.name='FAM'
 #store['mortality_025_grid']=Df
 ## ^fixed all peoblems with data_subset.h5 3/5/3018
+
+####---------------------------------------------------
+### subsetting data based GlobCover 2009 into data_subset_GC.h5
+
+#new_store = pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+### clean up new_store
+#to_keep=['/BPH_025_grid',
+# '/EVP',
+# '/EVP_sum',
+# '/EVP_win',
+# '/LAI_025_grid',
+# '/LAI_025_grid_sum',
+# '/LAI_025_grid_win',
+# '/PEVAP',
+# '/PEVAP_sum',
+# '/PEVAP_win',
+# '/RWC',
+# '/TPA_025_grid',
+# '/aspect_mean',
+# '/aspect_std',
+# '/canopy_height',
+# '/cwd',
+# '/dominant_leaf_habit',
+# '/elevation_mean',
+# '/elevation_std',
+# '/forest_cover', # to be changed for gc. Type yes after changing. Changed? Y
+# '/mortality_025_grid',
+# '/mortality_deciduous_025_grid', # to be changed for gc. Type yes after changing. Changed? No
+# '/mortality_evergreen_025_grid', # to be changed for gc. Type yes after changing. Changed? No
+# '/ppt',
+# '/ppt_sum',
+# '/ppt_win',
+# '/tmax',
+# '/tmax_sum',
+# '/tmax_win',
+# '/tmean',
+# '/tmean_sum',
+# '/tmean_win',
+# '/vpdmax',
+# '/vpdmax_sum',
+# '/vpdmax_win',
+# '/vsm',
+# '/vsm_sum',
+# '/vsm_win']
+#
+#for dataset in new_store.keys():
+#    if not(dataset in to_keep):
+#        new_store.remove(dataset)
+
+#new_store = pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#old_store = pd.HDFStore(Dir_CA+'/mort.h5')
+#
+#Df = old_store['mort']
+#fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname='GC',index_col=3)    
+#Df/=fc.gc_fc
+#Df=subset_forest_cov(Df,landcover = 'GC_subset')
+#Df.index.name='FAM'
+#new_store['mortality_025_grid']=Df
+##sds
+#
+#### extend time independent variables till 2016
+#to_extend_sources=['aspect_mean', 'aspect_std', 'canopy_height','elevation_mean',\
+#'elevation_std','forest_cover']
+#for source in to_extend_sources:
+#    Df=new_store[source]
+#    Df.loc[pd.to_datetime('2016-01-01')]=Df.loc[pd.to_datetime('2015-01-01')]
+#    new_store[source]=Df
+#
+#### subset gridIDs to forestcover >=0.70 as per GLOBCOVER2009 data
+#
+#for source in new_store.keys():
+#    new_store[source]=subset_forest_cov(new_store[source],landcover = 'GC_subset')
+#
+###update to new forest cover based on globcover
+#Df=new_store['forest_cover']
+#fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname='GC_subset',index_col=3)  
+#for index in Df.index:
+#    Df.loc[index]=fc.gc_fc
+         
+## add vod_pm into data_dubset_Gc because it is required to plot RWC definition
+#new_store = pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#old_store = pd.HDFStore(Dir_CA+'/data.h5')
+#
+#Df = old_store['vod_pm']
+#Df=remove_vod_affected(Df)
+#Df=subset_forest_cov(Df,landcover = 'GC_subset')
+#new_store['vod_pm']=Df
+#=====================================================
+## adding gridID as a dataframe in data_seubset_GC only
+#new_store = pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df=new_store['mortality_025_grid']
+#Df=Df.astype(int)
+#Df.loc[:,:]=Df.columns
+#Df.index.name='location'
+#new_store[Df.index.name]=Df
+#=====================================================

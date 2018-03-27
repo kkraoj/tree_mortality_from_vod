@@ -36,21 +36,21 @@ def rf_remove_nan(df):
     return df
 
 input_sources=['mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
-'LAI_025_grid_win','RWC', 'aspect_mean', 'aspect_std', 'canopy_height',\
+'LAI_025_grid_win','RWC_v2', 'aspect_mean', 'aspect_std', 'canopy_height',\
  'cwd','elevation_mean','elevation_std',\
  'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
  'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
-'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
+'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win','location']
 year_range=range(2009,2016)
 
 ## sources till 2016 available
 #input_sources=['mortality_025_grid','LAI_025_grid_sum',\
-#'LAI_025_grid_win','RWC_extended', 'aspect_mean', 'aspect_std', 'canopy_height',\
+#'LAI_025_grid_win','RWC_v2', 'aspect_mean', 'aspect_std', 'canopy_height',\
 # 'elevation_mean','elevation_std',\
 # 'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
 # 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
-#'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
-
+#'PEVAP_sum','EVP_win','PEVAP_win','location']
+#
 #year_range=range(2009,2017)
 
 #input_sources=['mortality_025_grid','LAI_025_grid_sum',\
@@ -66,7 +66,7 @@ year_range=range(2009,2016)
 #year_range=range(2005,2016)
 
 os.chdir(Dir_CA)
-store=pd.HDFStore(Dir_CA+'/data_subset.h5')
+store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 inputs=range(len(input_sources))
 for i in range(len(input_sources)):
     inputs[i]=store[input_sources[i]]

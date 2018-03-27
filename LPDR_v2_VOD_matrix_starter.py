@@ -46,6 +46,7 @@ sns.set(font_scale=2)
 #mpl.rcParams.update({'font.size': 22})
 latcorners=np.array([-70,70])
 loncorners=np.array([-180,180])
+
 #lats, lons = np.mgrid[90:-90:-0.25, -180:180:0.25]
 lats, lons = np.meshgrid(Df.index,Df.columns,indexing='ij')
 cmap = 'YlGnBu'

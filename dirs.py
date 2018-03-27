@@ -241,6 +241,8 @@ def RWC(Df,upper_quantile=0.95,start_month=7, months_window=3,start_year=2009):
     out[(out>1.0)]=np.nan
     out[(out<0.0)]=np.nan   
     out.index=pd.to_datetime(out.index,format='%Y')
+    out.index.name='RWC'
+    out.columns.name='gridID'
     return out
 
 def log_anomaly(Df):
@@ -268,9 +270,9 @@ def cwd_accumulate(df,start_year,end_year):
     df=df.loc[(df.index.year<=end_year) & (df.index.year>=start_year)]
     return df.sum()
 
-def append_prediction(name='rf_predicted'):
+def append_prediction(name='rf_predicted',filename='data_subset_GC.h5'):
     os.chdir(Dir_CA)
-    store=pd.HDFStore('data_subset.h5')
+    store=pd.HDFStore(filename)
     df=pd.read_csv('D:/Krishna/Project/data/%s.csv'%name,index_col=0)
     df=df['predicted_FAM']
     length=store['RWC'].shape[1]
@@ -291,8 +293,8 @@ def import_mort_leaf_habit(species,grid_size=25,start_year=2009,end_year=2015):
           (mort.index.year<=end_year)]
     return mort
 
-def subset_forest_cov(Df):
-    fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx')
+def subset_forest_cov(Df,landcover = 'GC_subset'):
+    fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname=landcover)
     Df=Df[fc.gridID]
     return Df
 
@@ -300,12 +302,12 @@ def append_color_importance(Df):
     green = '#1b9e77'
     brown = '#d95f02'
     blue = '#7570b3'
-    climate=['cwd','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+    climate=['CWD','ppt_sum','ppt_win','tmax_sum','tmax_win',\
              'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
             'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
     veg=['mortality_025_grid','live_basal_area','LAI_sum',\
             'LAI_win','RWC','canopy_height','forest_cover',]
-    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std']
+    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std','location']
     Df['color']=None
     Df.loc[Df.index.isin(climate),'color']=blue
     Df.loc[Df.index.isin(veg),'color']=green
@@ -333,3 +335,27 @@ def adjust_spines(ax, spines):
         # no xaxis ticks
 #        ax.xaxis.set_ticks([])
 #checking
+
+def make_lat_lon(gt):
+    lats=np.arange(start=gt[3]+gt[5]/2,stop=-gt[3]+gt[5]/2, step=gt[5])
+    lons=np.arange(start=gt[0]+gt[1]/2,stop=-gt[0]+gt[1]/2, step=gt[1])
+    lats, lons = np.meshgrid(lats,lons,indexing='ij')
+    return lats,lons
+
+def bar_label(heights,ax,color='k',x_offset=0,y_offset=0):
+    for i, v in enumerate(heights):
+        ax.text(v + x_offset, i + y_offset, '%0.2f'%v, \
+                color=color, fontweight='bold',va='center',ha='left')
+
+
+def remove_vod_affected(Df):
+    aff_start='2011-10-01'
+    aff_end='2012-08-01'
+    Df.loc[aff_start:aff_end]=np.nan
+    return Df
+
+def supply_lat_lon(landcover = 'GC_subset'):
+    fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname=landcover)
+    lat=fc.y
+    lon=fc.x
+    return lat,lon
