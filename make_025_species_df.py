@@ -21,7 +21,7 @@ species='evergreen'
 species='deciduous'
 os.chdir(Dir_CA)
 store=pd.HDFStore('data.h5')
-Df=store['TPA_005_grid']
+Df=store['mortality_005_grid']
 Df=mask_columns(ind_small_species(species),Df)  
 #Df.dropna(axis=1, how='all',inplace=True)
 Df_new=pd.DataFrame(np.full((Df.shape[0],nos),0),index=Df.index)
@@ -32,6 +32,16 @@ for gridID in Df_new.columns:
             Df_new[gridID]=Df[mapping.loc[gridID].T.values[0]].mean(axis='columns')
         else:
             Df_new[gridID]=Df[mapping.loc[gridID].T.values[0]]
-store['TPA_%s_025_grid'%species]=Df_new
-store.close()
+
+### adding code to make species mortality at 0.25 resolution with dr=
+### GLOBCOVER 2009 foresst cov. Code added in make_all_Dfs.
+### Here I just checked the dr of mortality__species_025_grid. The dr is actually
+### just equal to grid area in data.h5 file, not equal to forest cover. That was
+### done later in subset_data.h5 file. 
+Df_new=subset_forest_cov(Df_new,landcover = 'GC_subset')
+new_store=pd.HDFStore('data_subset_GC.h5')
+Df_old=new_store['mortality_%s_025_grid'%species]
+print('Both Dfs same? %s'%Df_old.equals(Df_new))
+#new_store['mortality_%s_025_grid'%species]=Df_new
+#store.close()
 

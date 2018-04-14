@@ -13,18 +13,19 @@ library(ranger)
 library(ggplot2)
 library(dplyr)
 library(SimDesign)
-write.files = 0
-set.seed(10)
+write.files = 1
+
 ```
 
 
 
 ```{r, fig.width = 4, fig.height = 4}
+## make 1 model run for prediction
 
 data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
 train.fraction = 0.7
 FAM.threshold = 0.05
-seed=7
+seed=10
 data.high=data[data$FAM>FAM.threshold,]
 data.low=data[data$FAM<=FAM.threshold,]
 train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
@@ -79,6 +80,8 @@ if (write.files)
 
 
 ```{r, fig.width = 8, fig.height = 4, eval=True}
+## make 960 runs for importance 
+
 data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
 max.iter=10
 imp.frame=data.frame(row.names=1:(dim(data)[2]-1))

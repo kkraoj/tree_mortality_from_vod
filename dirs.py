@@ -101,6 +101,13 @@ def get_marker_size(ax,fig,loncorners,grid_size,marker_factor):
     marker_size=width*grid_size/100/np.diff(loncorners)[0]/4*marker_factor
     return marker_size
 
+def get_marker_size_v2(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    width = bbox.width
+    width *= fig.dpi
+    marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
+    return marker_size
+
 
 def median_anomaly(Df):
     mean=Df.groupby(Df.index.dayofyear).mean()
@@ -154,14 +161,18 @@ def clean_xy(x,y,rep_times=1,thresh=0.0):
 #grid='grid'
 #table=Dir_mort+"/"+grid+".gdb/ADS"+year[-2:]+"_i_j" 
 #columns=['gridID','TPA1','Shape_Area','HOST1','HOST2','FOR_TYPE1']
-def build_df_from_arcpy(table, columns='all'):
+def build_df_from_arcpy(table, columns='all',dtype=None, index_col = None):
     if columns=='all':
         columns=[f.name for f in arcpy.ListFields(table)]
     cursor = arcpy.SearchCursor(table)
     Df=pd.DataFrame(columns=columns)
     for row in cursor:
-        data=pd.DataFrame([row.getValue(x) for x in columns],index=columns,dtype='str').T
+        data=pd.DataFrame([row.getValue(x) for x in columns],index=columns).T # removed dtype
         Df=Df.append(data)
+    Df=Df.astype(dtype)
+    if index_col != None:
+        Df.index = Df[index_col]
+        Df.drop(index_col, axis = 1, inplace = True)
     arcpy.Compact_management(Dir_mort+'/species.gdb')
     return Df
 
@@ -359,3 +370,133 @@ def supply_lat_lon(landcover = 'GC_subset'):
     lat=fc.y
     lon=fc.x
     return lat,lon
+
+def select_high_mort_grids(Df,remove_nans=False):
+    high_mort = [ 33,  73,  83,  84,  91,  97, 104, 105, 117, 118, 128, 129, 130,
+                137, 138, 139, 141, 149, 150, 151, 160, 161, 170, 171, 172, 173,
+                181, 182, 183, 184, 195, 196, 197, 198, 207, 208, 209, 218, 219,
+                220, 221, 227, 230, 231, 232, 233, 240, 258, 259, 260, 261, 268,
+                272, 273, 274, 277, 281, 287, 288, 289, 290, 296, 304, 308, 311,
+                312, 317, 320, 326, 328, 334, 335, 336, 343, 348, 349, 350]
+    Df=Df.loc[:,high_mort]
+    if remove_nans:
+        Df.dropna(axis=1, inplace=True)
+    return Df
+
+def select_bounding_box_grids(Df, thresh=0.25):
+    ## Thresh equals the distance from each side of unit square
+    ## to bounding box
+    
+    low_thresh=0.+thresh
+    high_thresh=1.-thresh
+    lc=pd.read_excel('D:/Krishna/Project/working_tables.xlsx',\
+                 sheetname='gc_ever_deci',index_col=1)  
+    index=lc.loc[(lc.evergreen>=low_thresh)&
+           (lc.evergreen<=high_thresh)&
+           (lc.deciduous>=low_thresh)&
+           (lc.deciduous<=high_thresh)].index
+    Df=Df.loc[:,index]
+    return Df
+
+def select_years(start_year =2009, end_year = 2015, *Dfs):
+    '''
+    Function will take unknown number of timeseries indexed pandas and 
+    output dataframes within start_year and end_year
+    '''
+    if len(Dfs)<=1:
+        Df=Dfs[0]
+        Df=Df[(Df.index.year>=start_year) &\
+              (Df.index.year<=end_year)]
+        out=Df
+    else:   
+        out=range(len(Dfs))
+        i=0
+        for Df in Dfs:
+            Df=Df[(Df.index.year>=start_year) &\
+                      (Df.index.year<=end_year)]
+            out[i]=Df
+            i+=1
+    return out
+
+def select_north_south_grids(Df):
+    north_grids = [ 137, 138, 139, 141, 145, 149, 150, 151, 160, 161, 166, 170, 171, 172, 173, \
+                   174, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 188, 189, 190, 191, \
+                   192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, \
+                   209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, \
+                   226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, \
+                   244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, \
+                   260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, \
+                   278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, \
+                   294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, \
+                   311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, \
+                   329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, \
+                   349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
+    
+    north_grids = [188, 189, 190, 191, 192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
+#    north_grids=[177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 188, 189, 190, 191, 192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365 ]
+    ### ADMP regions
+    north_grids = [183, 184, 185, 186, 188, 189, 195, 196, 197, 198, 199, 201, 202, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
+    Df_north = Df.loc[:, Df.columns.isin(north_grids)]
+    Df_south = Df.loc[:, ~Df.columns.isin(north_grids)]
+
+    return Df_north, Df_south
+
+def initiliaze_plot(journal = 'EcolLett', fs = 12):
+    fontsizes=['font.size','lines.markersize',
+     'legend.fontsize',
+     'axes.labelsize','xtick.labelsize','ytick.labelsize']
+    publishable = plotsettings.Set(journal)
+    for x in fontsizes:
+        plotsettings.journals.journals['EcolLett']['rcParams'][x]=fs
+    return publishable
+                                
+def scatter_threshold(x, y, ax,  panel_label, cmap = 'viridis', alpha = 1, scatter_size = 10, \
+                      mort_label = 'FAM (-)', y_range = [0,0.5], x_range = [0,1], FAM_thresh = 0.,\
+                        guess = (.3,0.05,1e-1,1e-1)):
+    if '%s'%type(x)=="<class 'pandas.core.frame.DataFrame'>":
+        x=x.values.flatten()
+    if '%s'%type(y)=="<class 'pandas.core.frame.DataFrame'>":
+        y=y.values.flatten()
+    x,y,z=clean_xy(x,y, thresh = FAM_thresh)
+    plot_data=ax.scatter(x,y,c=z,edgecolor='',cmap=cmap,alpha=alpha,marker='s',s=scatter_size)
+    ax.set_ylabel(mort_label)
+    guess=guess
+    popt , pcov = optimize.curve_fit(piecewise_linear, x, y, guess)
+    perr = np.sqrt(np.diag(pcov))
+    xd = np.linspace(min(x), max(x), 1000)
+    ax.plot(xd, piecewise_linear(xd, *popt),'r--',linewidth=1)
+    ax.fill_between(xd, piecewise_linear(xd, popt[0],popt[1],popt[2]-perr[2],popt[3]-perr[3]),\
+                    piecewise_linear(xd, popt[0],popt[1],popt[2]+perr[2],popt[3]+perr[3]), \
+                                    color='r',alpha=0.6)
+    ax.axvline(popt[0],linestyle='--',linewidth=2,color='k')
+    ymin,ymax=y_range[0], y_range[1]
+    ax.add_patch(Rectangle([popt[0]-perr[0],ymin],2*perr[0],ymax-ymin,\
+                          hatch='//////', color='k', lw=0, fill=False,zorder=10))
+    ax.set_ylim(y_range)
+    ax.set_xlim(x_range)
+    residuals = y- piecewise_linear(x, *popt)
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((y-np.mean(y))**2)
+    r_squared = 1 - (ss_res / ss_tot)
+    print('R-squared for %s = %0.2f; Threshold = %0.2f; Error = %0.2f'%(panel_label, r_squared, popt[0], perr[0]))
+    
+    ax.annotate('%s'%panel_label, xy=(0.01, 1.03), xycoords='axes fraction',\
+                ha='left',va='bottom')
+#    ax.set_aspect('equal')
+    return plot_data, z
+    
+def select_forest_type_grids(forest, fortype, *Dfs):
+    if len(Dfs)<=1:
+        Df=Dfs
+        Df = Df[fortype==forest].values.flatten()
+        out=Df
+    else:   
+        out=range(len(Dfs))
+        i=0
+        for Df in Dfs:
+            Df = Df[fortype==forest].values.flatten()
+            out[i]=Df
+            i+=1
+    return out
+    
+    

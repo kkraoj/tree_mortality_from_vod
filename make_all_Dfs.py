@@ -385,3 +385,34 @@ os.chdir(Dir_CA)
 #Df.index.name='location'
 #new_store[Df.index.name]=Df
 #=====================================================
+### changing mortality_species_025_grid in data_subset_GC such that dr now consists
+### of species landcover from GLOBCOVER 2009 dataset.
+
+#species='evergreen'
+#species='deciduous'
+#os.chdir(Dir_CA)
+#store=pd.HDFStore('data_subset_GC.h5')
+#Df_old=store['mortality_%s_025_grid'%species]
+#DF_old=subset_forest_cov(Df_old,landcover = 'GC_subset')
+#lc=pd.read_excel('D:/Krishna/Project/working_tables.xlsx',\
+#                 sheetname='gc_ever_deci',index_col=1)  
+#Df_new=Df_old/lc[species]
+#store['mortality_%s_025_grid_new'%species]=Df_new
+
+#==============================================================================
+os.chdir(Dir_CA)
+store=pd.HDFStore('data_subset_GC.h5')
+Df_main=store['mortality_025_grid']
+Df=Df_main.copy()
+
+lc=pd.read_excel('D:/Krishna/Project/working_tables.xlsx',\
+                 sheetname='gc_ever_deci',index_col=1) 
+lc=lc.loc[:,['evergreen','deciduous','mixed','woody']]
+
+for param in lc.columns:
+    for index in Df.index:
+        Df.loc[index]=lc[param]
+    Df.index.name='%s_cover_fraction'%param
+    store[Df.index.name]=Df
+         
+store.close()
