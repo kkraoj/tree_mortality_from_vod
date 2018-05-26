@@ -18,7 +18,7 @@ os.chdir(MyDir+'/LPDR_v2/VOD_matrix') # location of VOD matrix
 store=pd.HDFStore('VOD_LPDR_v2.h5') #this is your store or marketplace of vod files for all dates
 
 param='VOD'
-pass_type='A'
+pass_type='D'
 
 ### make lats and lons numpy arrays
 year=2011 #any year
@@ -42,3 +42,5 @@ for year in year_range:
         if filename in all_files:
             vod_world[counter,:,:]=store[filename].values #vod file for year, date
         counter+=1
+
+np.save('LPDRv2_D.npy', vod_world)

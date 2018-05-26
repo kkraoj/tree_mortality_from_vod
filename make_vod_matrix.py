@@ -22,7 +22,7 @@ start_time = time.clock()
 year_range=range(2002,2018)
 date_range=range(1,367,1)
 
-pass_type = 'A';             #Type the overpass: 'A' or 'D'
+pass_type = 'D';             #Type the overpass: 'A' or 'D'
 param = 'tc10';           #Type the parameter
 
 fid = open(MyDir+'/anci/MLLATLSB','rb');

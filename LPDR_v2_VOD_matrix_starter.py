@@ -21,9 +21,9 @@ os.chdir(MyDir+'/LPDR_v2/VOD_matrix') # location of VOD matrix
 store=pd.HDFStore('VOD_LPDR_v2.h5') #this is your store or marketplace of vod files for all dates
 
 param='VOD'
-year=2014
+year=2009
 date=245
-pass_type='A'
+pass_type='D'
 
 filename='%s_%s_%s_%03d'%(param,pass_type,year,date)
 Df=store[filename] #vod file for year, date
@@ -33,7 +33,7 @@ Df=store[filename] #vod file for year, date
 
 def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    width, height = bbox.width, bbox.height
+    width = bbox.width
     width *= fig.dpi
     marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
     return marker_size

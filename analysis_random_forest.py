@@ -70,7 +70,7 @@ Df=rf_assemble(year_range,*inputs)
 #Df.loc[Df['missing_data']==0,'missing_data']='no'
 Df=rf_remove_nan(Df)
 
-Df.to_csv('D:/Krishna/Project/data/rf_data.csv')
+#Df.to_csv('D:/Krishna/Project/data/rf_data.csv')
 
 #subprocess.call("/usr/bin/Rscript --vanilla /D:/Krishna/Project/codes/rf_model.rmd", shell=True)
 #Null analysis-----------------------------------------------------------------

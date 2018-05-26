@@ -25,7 +25,9 @@ write.files = 1
 data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
 train.fraction = 0.7
 FAM.threshold = 0.05
-seed=10
+seed=16
+set.seed(seed=seed)
+
 data.high=data[data$FAM>FAM.threshold,]
 data.low=data[data$FAM<=FAM.threshold,]
 train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
@@ -50,7 +52,7 @@ test.data['predicted_FAM']=predict(fit,test.data[-c(1)])$predictions  # best mod
 
 FAM.cutoff=0.00
 test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
-bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=TRUE))
+bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=FALSE))
 sprintf('Test R-squared = %0.2f',test.rsq)
 sprintf('Relative Bias = %0.2f',bias.model)
 

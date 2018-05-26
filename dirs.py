@@ -478,7 +478,7 @@ def scatter_threshold(x, y, ax,  panel_label, cmap = 'viridis', alpha = 1, scatt
     ss_res = np.sum(residuals**2)
     ss_tot = np.sum((y-np.mean(y))**2)
     r_squared = 1 - (ss_res / ss_tot)
-    print('R-squared for %s = %0.2f; Threshold = %0.2f; Error = %0.2f'%(panel_label, r_squared, popt[0], perr[0]))
+    print('R-squared for %s = %0.2f; Threshold = %0.2f +- %0.2f'%(panel_label, r_squared, popt[0], perr[0]))
     
     ax.annotate('%s'%panel_label, xy=(0.01, 1.03), xycoords='axes fraction',\
                 ha='left',va='bottom')
@@ -498,5 +498,9 @@ def select_forest_type_grids(forest, fortype, *Dfs):
             out[i]=Df
             i+=1
     return out
+
+
+    
+    
     
     
