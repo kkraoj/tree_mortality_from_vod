@@ -17,8 +17,8 @@ def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
     marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
     return marker_size
 
-def plot_map(lats,lons,latcorners, loncorners,\
-             var =None,
+def plot_map(lats,lons, var =None,\
+             latcorners = [-90,90], loncorners = [-180, 180],\
              enlarge = 1, marker_factor = 1, \
              cmap = 'YlGnBu', markercolor = 'r',\
              fill = 'papayawhip', background = 'lightcyan',\
@@ -27,7 +27,7 @@ def plot_map(lats,lons,latcorners, loncorners,\
              drawstates = False, drawcounties = False):
     """
     usage:
-    fig, ax = plot_map(lats,lons,latcorners, loncorners, var)
+    fig, ax = plot_map(lats,lons,var)
     Above inputs are required. 
     
     To add color bar:
