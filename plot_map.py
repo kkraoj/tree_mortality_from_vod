@@ -7,10 +7,7 @@ marker size inside plot_map
 @author: kkrao
 """
 import numpy as np
-import matplotlib as mpl
-import seaborn as sns
 import matplotlib.pyplot as plt
-from dirs import MyDir # home directory
 from mpl_toolkits.basemap import Basemap
 
 def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
