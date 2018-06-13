@@ -400,19 +400,28 @@ os.chdir(Dir_CA)
 #store['mortality_%s_025_grid_new'%species]=Df_new
 
 #==============================================================================
-os.chdir(Dir_CA)
-store=pd.HDFStore('data_subset_GC.h5')
-Df_main=store['mortality_025_grid']
-Df=Df_main.copy()
+#os.chdir(Dir_CA)
+#store=pd.HDFStore('data_subset_GC.h5')
+#Df_main=store['mortality_025_grid']
+#Df=Df_main.copy()
+#
+#lc=pd.read_excel('D:/Krishna/Project/working_tables.xlsx',\
+#                 sheetname='gc_ever_deci',index_col=1) 
+#lc=lc.loc[:,['evergreen','deciduous','mixed','woody']]
+#
+#for param in lc.columns:
+#    for index in Df.index:
+#        Df.loc[index]=lc[param]
+#    Df.index.name='%s_cover_fraction'%param
+#    store[Df.index.name]=Df
+#         
+#store.close()
 
-lc=pd.read_excel('D:/Krishna/Project/working_tables.xlsx',\
-                 sheetname='gc_ever_deci',index_col=1) 
-lc=lc.loc[:,['evergreen','deciduous','mixed','woody']]
-
-for param in lc.columns:
-    for index in Df.index:
-        Df.loc[index]=lc[param]
-    Df.index.name='%s_cover_fraction'%param
-    store[Df.index.name]=Df
-         
+#=======================================================================
+store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+for lag in [1,2]: 
+    Df=store['RWC']
+    Df_shift=Df.shift(lag)
+    Df_shift.index.name=Df_shift.index.name+'_lag_%d'%lag
+    store[Df_shift.index.name]=Df_shift 
 store.close()

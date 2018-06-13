@@ -16,6 +16,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from dirs import MyDir # home directory
 from mpl_toolkits.basemap import Basemap
+from plot_map import plot_map
 
 os.chdir(MyDir+'/LPDR_v2/VOD_matrix') # location of VOD matrix
 store=pd.HDFStore('VOD_LPDR_v2.h5') #this is your store or marketplace of vod files for all dates
@@ -70,3 +71,5 @@ cbaxes.annotate('%s'%param,xy=(0,1.1), xycoords='axes fraction',\
             ha='left')
 #
 
+
+fig, ax = plot_map(lats, lons, var = Df)

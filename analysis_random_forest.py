@@ -52,26 +52,45 @@ year_range=range(2009,2016)
 #'PEVAP_sum','EVP_win','PEVAP_win','location']
 #year_range=range(2009,2017)
 
-##uncorrelated sources
-#input_sources=['mortality_025_grid', 'RWC', 'elevation_mean', 'cwd','elevation_std',\
-#'ppt_sum', 'LAI_025_grid_sum','LAI_025_grid_win','vsm_sum','vsm_win','location',\
-# 'aspect_mean', 'aspect_std', 'forest_cover', 'canopy_height' ]
+####uncorrelated sources r-sqaured < 0.25
+#input_sources=['mortality_025_grid',"RWC","cwd","elevation_std","elevation_mean","ppt_sum","location",\
+#          "aspect_mean","aspect_std","vsm_sum","canopy_height", 'EVP_win']
 #year_range=range(2009,2016)
+
+### base model + lagged RWC
+#
+input_sources.extend(('RWC_lag_1', 'RWC_lag_2'))
 
 os.chdir(Dir_CA)
 store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+###----------filling RWC values for 2009
+#Df = store['RWC_lag_1']
+#Df = Df.interpolate(method = 'spline', order = 3, axis = 1).bfill()
+#from dirs import RWC
+#Df = RWC(store['vod_pm'], start_year = 2008).shift(1)
+#Df.index.name = 'RWC_lag_1_fill'
+#store[Df.index.name]=Df
+####=====================================
+     
 inputs=range(len(input_sources))
 for i in range(len(input_sources)):
     inputs[i]=store[input_sources[i]]
 Df=rf_assemble(year_range,*inputs)
+
+# lagged model: predictors: 2009 - 2015, FAM: 2010 - 2016
+#Df=rf_assemble(range(2009,2015),*inputs)
+#Df_lead = rf_assemble(range(2010,2016),*inputs)
+#Df['FAM'] = Df_lead['FAM']
+##----------------------------------------------------------
 #Df['missing_data']=Df.T.isnull().sum()
 #Df.loc[Df['missing_data']>=1,'missing_data']='yes'
 #Df.loc[Df['missing_data']==1,'missing_data']='yes'
 #Df.loc[Df['missing_data']==0,'missing_data']='no'
+##----------------------------------------------------------
 Df=rf_remove_nan(Df)
+Df.to_csv('D:/Krishna/Project/data/rf_data.csv')
 
-#Df.to_csv('D:/Krishna/Project/data/rf_data.csv')
-
+### Misc,---------------------------------------------------------------
 #subprocess.call("/usr/bin/Rscript --vanilla /D:/Krishna/Project/codes/rf_model.rmd", shell=True)
 #Null analysis-----------------------------------------------------------------
 #Null=Df[['RWC','cwd','vsm_sum','vsm_win']]
@@ -101,3 +120,5 @@ Df=rf_remove_nan(Df)
 #Df['valid_RWC_no_vsm']=0
 #Df.loc[(Df.RWC.notnull() & (Df.vsm_sum.isnull() | Df.vsm_win.isnull())),'valid_RWC_no_vsm' ]  = 1
 #Df['valid_RWC_no_vsm'].sum()/Df.shape[0]*100
+
+###================================================================

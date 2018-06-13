@@ -60,7 +60,7 @@ def main():
 if __name__ == '__main__':
     main()
 os.chdir(Dir_CA)
-store=pd.HDFStore('data.h5')
+store=pd.HDFStore('data_subset_GC.h5')
 mort=store['mortality_025_grid']
 #==============================================================================
 thresh=0.1

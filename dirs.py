@@ -17,11 +17,11 @@ import matplotlib.pyplot as plt
 import numpy.ma as ma
 import scipy.io
 import os
-import arcpy
+#import arcpy
 from osgeo import gdal
 from osgeo import gdal_array
 from osgeo import osr
-from arcpy.sa import *
+#from arcpy.sa import *
 import pylab
 import h5py
 import urllib
@@ -54,6 +54,7 @@ Dir_CA='D:/Krishna/Project/data/Mort_Data/CA'
 Dir_fig='D:/Krishna/Project/figures'
 Dir_mort='D:/Krishna/Project/data/Mort_Data/CA_Mortality_Data'
 Dir_NLDAS=MyDir+'/NLDAS'
+Dir_ms_fig = 'D:/Krishna/Project/ms_figures'
 
 def box_equal_nos(x,y,boxes,thresh):
 #    x=data_anomaly # for debugging only
@@ -146,7 +147,7 @@ def clean_xy(x,y,rep_times=1,thresh=0.0):
     x=x.take(non_nan_ind);y=y.take(non_nan_ind)
     non_nan_ind=np.where(~np.isnan(y))[0]
     x=x.take(non_nan_ind);y=y.take(non_nan_ind)
-    inds=np.where(y>=thresh)[0]
+    inds=np.where(x>=thresh)[0]
     x=x.take(inds)  ;y=y.take(inds)
     x=np.repeat(x,rep_times);y=np.repeat(y,rep_times)
     xy = np.vstack([x,y])
@@ -317,7 +318,7 @@ def append_color_importance(Df):
              'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
             'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
     veg=['mortality_025_grid','live_basal_area','LAI_sum',\
-            'LAI_win','RWC','canopy_height','forest_cover',]
+            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height','forest_cover']
     topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std','location']
     Df['color']=None
     Df.loc[Df.index.isin(climate),'color']=blue
@@ -419,21 +420,22 @@ def select_years(start_year =2009, end_year = 2015, *Dfs):
     return out
 
 def select_north_south_grids(Df):
-    north_grids = [ 137, 138, 139, 141, 145, 149, 150, 151, 160, 161, 166, 170, 171, 172, 173, \
-                   174, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 188, 189, 190, 191, \
-                   192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, \
-                   209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, \
-                   226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, \
-                   244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, \
-                   260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, \
-                   278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, \
-                   294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, \
-                   311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, \
-                   329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, \
-                   349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
+#    north_grids = [ 137, 138, 139, 141, 145, 149, 150, 151, 160, 161, 166, 170, 171, 172, 173, \
+#                   174, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 188, 189, 190, 191, \
+#                   192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, \
+#                   209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, \
+#                   226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, \
+#                   244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, \
+#                   260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, \
+#                   278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, \
+#                   294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, \
+#                   311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, \
+#                   329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, \
+#                   349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
     
-    north_grids = [188, 189, 190, 191, 192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
+#    north_grids = [188, 189, 190, 191, 192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
 #    north_grids=[177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 188, 189, 190, 191, 192, 193, 195, 196, 197, 198, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365 ]
+    
     ### ADMP regions
     north_grids = [183, 184, 185, 186, 188, 189, 195, 196, 197, 198, 199, 201, 202, 205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 234, 236, 237, 238, 239, 240, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 320, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 340, 341, 342, 343, 344, 345, 348, 349, 350, 357, 358, 359, 360, 361, 362, 363, 365]
     Df_north = Df.loc[:, Df.columns.isin(north_grids)]
@@ -500,7 +502,59 @@ def select_forest_type_grids(forest, fortype, *Dfs):
     return out
 
 
+def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    width = bbox.width
+    width *= fig.dpi
+    marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
+    return marker_size
+
+def plot_map(lats,lons, var =None,\
+             fig = None, ax = None,\
+             latcorners = [-90,90], loncorners = [-180, 180],\
+             enlarge = 1, marker_factor = 1, \
+             cmap = 'YlGnBu', markercolor = 'r',\
+             fill = 'papayawhip', background = 'lightcyan',\
+             height = 3, width = 5,\
+             drawcoast = True, drawcountries = False,\
+             drawstates = False, drawcounties = False,\
+             shapefilepath = None,shapefilename = None,\
+             resolution = 'l'):
+    """
+    usage:
+    fig, ax = plot_map(lats,lons,var)
+    Above inputs are required. 
     
+    To add color bar:
+        cax = fig.add_axes([0.17, 0.3, 0.03, 0.15])
+        fig.colorbar(plot,ax=ax,cax=cax)
+    """
+    if fig == None:
+        fig, ax = plt.subplots(figsize=(width*enlarge,height*enlarge))
+    marker_size=get_marker_size(ax,fig,loncorners, marker_factor)
+    m = Basemap(projection='cyl',lat_0=45,lon_0=0,resolution=resolution,\
+                    llcrnrlat=latcorners[0],urcrnrlat=latcorners[1],\
+                    llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
+                    ax=ax)
+    if drawcoast:
+        m.drawcoastlines()
+    if drawcountries:
+        m.drawcountries()
+    if drawstates:
+        m.drawstates()
+    if drawcounties:
+        m.drawcounties()
+    if shapefilepath:
+        m.readshapefile(shapefilepath,shapefilename,drawbounds=True, color='black')
+    m.drawmapboundary(fill_color=background)
+    m.fillcontinents(color=fill,zorder=0)
+    if var is not None:
+        m.scatter(lons, lats, s=marker_size,c=var,cmap=cmap,\
+                        marker='s')
+    else:
+        m.scatter(lons, lats, s=marker_size,c=markercolor,\
+                        marker='s')
+    return fig, ax, m
     
     
     

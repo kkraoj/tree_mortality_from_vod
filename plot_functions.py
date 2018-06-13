@@ -5,7 +5,6 @@ Created on Wed Oct 25 00:11:14 2017
 @author: kkrao
 """
 from __future__ import division
-import arcpy
 import os
 import plotsettings
 import seaborn as sns
@@ -20,7 +19,8 @@ from dirs import Dir_CA, Dir_mort, get_marker_size, import_mort_leaf_habit, clea
                     piecewise_linear,append_prediction, \
                     append_color_importance, adjust_spines,supply_lat_lon,\
                     select_high_mort_grids, select_bounding_box_grids,\
-                    select_north_south_grids, select_years, scatter_threshold
+                    select_north_south_grids, select_years, scatter_threshold, \
+                    Dir_ms_fig, plot_map
 from matplotlib import ticker
 from mpl_toolkits.basemap import Basemap
 from scipy import optimize
@@ -31,8 +31,10 @@ from matplotlib.ticker import FormatStrFormatter
 from sklearn.metrics import mean_squared_error
 from math import sqrt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 
-
+#mpl.rcParams.update({'figure.autolayout': True})
 #
 cardinal='#BD2031'
 zoom=1.0
@@ -45,7 +47,7 @@ for x in fontsizes:
     plotsettings.journals.journals['EcolLett']['rcParams'][x]=fs
 #mpl.rcParams['font.size'] = 32
 ppt = 0
-
+dpi = 300
 start_year=2009
 end_year=2015
 os.chdir(Dir_CA)
@@ -63,7 +65,7 @@ def flatten_diagonally(npA, diagonals = None):
 def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.40],\
                          var1_label="Observed",\
                     var2='predicted_FAM', var2_range=[1e-5, 0.40],\
-                     var2_label="Predicted",\
+                     var2_label="Detected",\
                     grid_size=25,cmap='inferno_r',cmap2='inferno_r', \
                     start_month=7,months_window=3,ticks=5,\
                     title='Timeseries of observed and predicted mortality',proj='cyl',\
@@ -155,6 +157,7 @@ def plot_timeseries_maps(var1='mortality_%03d_grid', var1_range=[1e-5, 0.40],\
 #    ax.add_artist(scalebar)
     ax.annotate('California', xy=(0.1, 0), xycoords='axes fraction',\
                     ha='left',va='bottom',size=fs*0.7)
+    plt.savefig(Dir_ms_fig+'/Figure_3.tiff', dpi = dpi, bbox_inches="tight")
     plt.show()
     return cb0
 #==============================================================================
@@ -377,7 +380,7 @@ def plot_pdf(data_source1='vod_pm',data_source2='RWC',data_source3='cwd',\
 def plot_regression(var1='FAM', var_range=[-0.02, 0.45],\
                          var1_label="Observed FAM (-)",\
                     var2='predicted_FAM',\
-                     var2_label="Predicted FAM (-)",\
+                     var2_label="Detected FAM (-)",\
                     grid_size=25,cmap='PuOr', \
                     ticks=5,\
                     title='Regression of observed and predicted mortality',proj='cyl',\
@@ -424,11 +427,12 @@ def plot_regression(var1='FAM', var_range=[-0.02, 0.45],\
     rms = sqrt(mean_squared_error(Df[var1], Df[var2]))
     bias = np.mean(Df[var1]- Df[var2])
     print('RMSE = %0.4f | Bias = %0.4f'%(rms, bias))
+    plt.savefig(Dir_ms_fig+'/Figure_4.tiff', dpi = dpi, bbox_inches="tight")
 
-def plot_importance():
+def plot_importance(filename =None, width = 0.8, height = 2, savename = None):
     os.chdir(Dir_CA)
-    Df=pd.read_csv('D:/Krishna/Project/data/rf_sensitivity_importance.csv',index_col=0)   
-    publishable.set_figsize(0.9*zoom, 1.7*zoom, aspect_ratio =1)
+    Df=pd.read_csv('D:/Krishna/Project/data/%s.csv'%filename,index_col=0)   
+    publishable.set_figsize(width*zoom, height*zoom, aspect_ratio =1)
     sns.set_style('whitegrid')
     Df=Df.sort_values('mean')
     Df = Df/Df['mean'].sum()
@@ -447,6 +451,8 @@ def plot_importance():
                        Patch(facecolor=brown, edgecolor=None,label='Topography'),\
                         Patch(facecolor=blue, edgecolor=None,label='Climate')]
     ax.legend(handles=legend_elements,frameon=True, title='Variable Type')
+#    plt.tight_layout()
+    plt.savefig(Dir_ms_fig+'/%s.tiff'%savename, dpi = dpi, bbox_inches="tight")
     return Df
     
     
@@ -580,14 +586,13 @@ def plot_RWC_definition(data_source1='vod_pm',data_source2='RWC',\
                             \
                             start_month=7,months_window=3,journal='EcolLett'\
                             ,alpha1=0.2,color='#BD2031',alpha2=0.7):
-    zoom=1.5
     os.chdir(Dir_CA)
     store=pd.HDFStore(filename)
     data=store[data_source1]
     data=data[(data.index.year>=start_year) &\
       (data.index.year<=end_year)]  
     data=data.rolling(30,min_periods=1).mean()
-    publishable.set_figsize(1.2*zoom, 0.3*zoom, aspect_ratio =1)
+    publishable.set_figsize(1.8*zoom, 0.5*zoom, aspect_ratio =1)
     sns.set_style('ticks')
     fig, ax = plt.subplots(1,1,sharex=True)
 #    ax.grid(axis='x')
@@ -620,6 +625,8 @@ def plot_RWC_definition(data_source1='vod_pm',data_source2='RWC',\
     ax2.set_yticklabels([0.0,0.5,1.0])
     ax.set_yticks(np.arange(1.2,1.6,0.1))
     ax2.grid(axis='y',alpha=0.2,color=color)
+    plt.savefig(Dir_ms_fig+'/Figure_1.tiff', dpi = dpi, bbox_inches="tight")
+    
 def plot_rwc_cwd(data1='RWC',data2='cwd',data1_label="RWC (-)",\
                  data2_label='CWD (mm)',
                     mort_label=(1-ppt)*'FAM (-)'+ppt*'Fractional Area of Mortality (-)',\
@@ -756,7 +763,9 @@ def plot_grid(data='data',journal='EcolLett',color='#BD2031'):
         niter+=1
         ax.annotate(xcol.lower(), xy=(0.5, 0.95), xycoords='axes fraction',\
                 ha='center',va='top') 
-    fig.text(0.04,0.5,'FAM',rotation=90)
+    fig.text(0.06,0.5,'FAM (-)',rotation=90)
+    plt.savefig(Dir_ms_fig+'/Figure_S3.tiff', dpi = dpi, bbox_inches="tight")
+    
 def shift_labels(ax,SHIFT=0.5):
     for label in ax.xaxis.get_majorticklabels():
         label.customShiftValue = SHIFT
@@ -767,15 +776,17 @@ def shift_labels(ax,SHIFT=0.5):
         label.set_y = types.MethodType( lambda self, y: mpl.text.Text.set_y(self, y-self.customShiftValue ), 
                                     label, mpl.text.Text )
         
-def plot_heatmap(data='data',journal='EcolLett',cmap="YlGnBu"):
+def plot_heatmap(data='data',cmap='PRGn_r'):
     Df=pd.read_csv('D:/Krishna/Project/data/rf_%s.csv'%data,index_col=0) 
     Df.drop('FAM',axis = 1, inplace = True)
     corr=Df.corr()  
-    keep=["RWC","CWD","elevation_std","elevation_mean","ppt_sum","LAI_win","location",\
-          "LAI_sum","aspect_mean","aspect_std","vsm_sum","vsm_win","canopy_height","forest_cover"]
-#    corr.loc[:3,blank]=np.NaN
+    keep=["RWC","CWD","elevation_std","elevation_mean","ppt_sum","location",\
+          "aspect_mean","aspect_std","vsm_sum","canopy_height", 'EVP_win']
+    #=========================================================================
+
+    ##=======================================================================
     sns.set_style('white')
-    publishable.set_figsize(1.9*zoom, 1.9*zoom, aspect_ratio =1)
+    publishable.set_figsize(2*zoom, 2*zoom, aspect_ratio =1)
     inds=sns.clustermap(corr,figsize=(1e-10,1e-10)\
                         ).dendrogram_row.reordered_ind     
     corr=corr[inds]
@@ -783,7 +794,6 @@ def plot_heatmap(data='data',journal='EcolLett',cmap="YlGnBu"):
     mask = np.zeros_like(corr)
 
     hide_inds=np.array([corr.columns.get_loc(c) for c in corr.columns if c not in keep])
-#    show_inds=np.arange(np.shape(mask)[1])[~blank_inds]
     mask[:,hide_inds]=True
     mask[hide_inds,:]=True   
     mask[np.tril_indices_from(mask)] = False
@@ -792,13 +802,21 @@ def plot_heatmap(data='data',journal='EcolLett',cmap="YlGnBu"):
     fig, ax = plt.subplots()
     ax.add_patch(Rectangle((0,0),corr.shape[1],corr.shape[0],color='darkgrey',zorder=-1,alpha=0.5))
     cbar_ax = fig.add_axes([.9, .121, .03, .76])
-    sns.heatmap(corr,vmin=-1,vmax=1,mask=mask,ax=ax, annot=True, fmt='.1f', annot_kws={"size": 5}, cbar_ax=cbar_ax,\
+    sns.heatmap(corr,vmin=-1,vmax=1,mask=mask,ax=ax, annot=True, fmt='.1f', \
+                annot_kws={"size": 7}, cbar_ax=cbar_ax,\
                 square=True,cbar_kws={'ticks':np.linspace(-1,1,11)},cmap=cmap,\
                                       linewidths=.2)
-#    plt.show()
-
-#    plt.show()
-#    ax.tick_params(axis='both', pad=-1,color='lightgrey')
+    plt.savefig(Dir_ms_fig+'/Figure_S4.tiff', dpi = dpi, bbox_inches="tight")
+    plt.show()
+#    ### investigate============================================================
+    cutoff = 0.1870
+    calc_keep = (corr**2).quantile(0.75).sort_values()[:11]
+    calc_keep = calc_keep.index    
+    diff = list(set(keep).symmetric_difference(set(calc_keep)))
+    print(calc_keep)
+    print(diff)
+    
+    
     
 def plot_rsq_subset(journal='EcolLett'):
     sns.set_style('whitegrid')
@@ -967,7 +985,7 @@ def plot_north_south_thresh(data='RWC',data_label="RWC (-)",\
 
     mort, data = select_years(2009, 2015, mort,data)
     
-    publishable.set_figsize(0.76*zoom, 1.7*zoom, aspect_ratio = 1)
+    publishable.set_figsize(0.9*zoom, 2.8*zoom, aspect_ratio = 1)
     fig, axs = plt.subplots(nrows=2,ncols=1,sharex='col')
     plt.subplots_adjust(hspace=0.25)
     ax=axs[0]
@@ -1067,7 +1085,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     sns.set_style("ticks")
     os.chdir(Dir_CA)
     store=pd.HDFStore(filename)
-    zoom = 1.5
+    zoom = 1
     data1, data2, mort=store[data1], store[data2], store[mort]
     data1, data2, mort=select_years(2009, 2015, data1, data2, mort)
     data1_north, data1_south=select_north_south_grids(data1)
@@ -1075,7 +1093,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     mort_north, mort_south=select_north_south_grids(mort)
     
     
-    publishable.set_figsize(1*zoom, 1.4*zoom, aspect_ratio = 1)
+    publishable.set_figsize(1.6*zoom, 2.35*zoom, aspect_ratio = 1)
     
     fig, axs = plt.subplots(nrows=3,ncols=2)
     publishable.panel_labels(fig = fig, position = 'outside', case = 'lower',
@@ -1093,7 +1111,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ax.set_xticklabels([])
 ###===========================================================================       
     ax=axs[1,0]
-    plot_data, z = scatter_threshold(data1_north,mort_north, ax, 'Northern regions only', FAM_thresh = 0.,\
+    plot_data, z = scatter_threshold(data1_north,mort_north, ax, 'Northern California', FAM_thresh = 0.,\
                                      guess=(0.08,0.02,1e-4,1e-2), x_range = [-.05,1])
     ax.set_xticks([0,0.25,0.50,0.75,1])
     adjust_spines(ax,['left','bottom'])
@@ -1102,7 +1120,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ax.set_yticks(np.arange(0,0.6,0.1))
 ###===========================================================================       
     ax=axs[2,0]
-    plot_data, z = scatter_threshold(data1_south,mort_south, ax, 'Southern regions only', FAM_thresh = 0.,\
+    plot_data, z = scatter_threshold(data1_south,mort_south, ax, 'Southern California', FAM_thresh = 0.,\
                                      guess=(0.08,0.02,1e-4,1e-2), x_range = [-.05,1])
     ax.set_xticks([0,0.25,0.50,0.75,1])
     adjust_spines(ax,['left','bottom'])
@@ -1122,7 +1140,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ax.set_xticklabels([])    
 ###===========================================================================       
     ax = axs[1,1]
-    plot_data, z = scatter_threshold(data2_north,mort_north, ax, 'Northern regions only', FAM_thresh = 0.,\
+    plot_data, z = scatter_threshold(data2_north,mort_north, ax, 'Northern California', FAM_thresh = 0.,\
                                      guess = (600,0.05,1e-3,1e-3), x_range = [200,1200])
     ax.set_xticks([200,450,700, 950, 1200])
     ax.set_yticks(np.arange(0,0.6,0.1))
@@ -1132,7 +1150,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     ax.set_xticklabels([])
 ###===========================================================================       
     ax = axs[2,1]
-    plot_data, z = scatter_threshold(data2_south,mort_south, ax, 'Southern regions only', FAM_thresh = 0.,\
+    plot_data, z = scatter_threshold(data2_south,mort_south, ax, 'Southern California', FAM_thresh = 0.,\
                                      guess = (700,0.05,1e-3,1e-3), x_range = [200,1200])
     ax.set_xticks([200,450,700, 950, 1200])
     ax.set_yticks(np.arange(0,0.6,0.1))
@@ -1154,7 +1172,7 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     cax.set_yticklabels(['Low', 'High'])
     cax.tick_params(axis='y', right='off',pad=0)
 ###===========================================================================   
-    shift = -0.65
+    shift = -0.53
     axs[2,0].annotate('', xy=(0, shift), xycoords='axes fraction', xytext=(1, shift), 
             arrowprops=dict( color='grey', width=0.4, headwidth=8,headlength=20))
     axs[2,0].annotate('Drier', color = 'grey',xy=(0.5, shift), xycoords='axes fraction',\
@@ -1168,32 +1186,117 @@ def plot_rwc_cwd_all(data1='RWC',data2='cwd',data1_label="RWC (-)",\
     axs[2,1].annotate('|', xy=(0.01, shift), fontsize = fs - 2, xycoords='axes fraction',\
        color = 'grey', va = 'center', ha = 'right')
     
-    
+
 ###===========================================================================   
+    plt.savefig(Dir_ms_fig+'/Figure_2.tiff', dpi = dpi, bbox_inches="tight")
     plt.show()
     
 #    for ax in axs.ravel():
 #        ax.annotate('%d'%i, xy=(0.5, 0.5), xycoords='axes fraction')
 #        i+=1
 #    
-   
+
+def plot_inc_cumm_corr(cmap=sns.dark_palette("seagreen",as_cmap=True,reverse=True),\
+                       alpha = 1,\
+                       var1_range = [-0.02,0.5],var1_label = 'Incremental FAM (-)',\
+                       var2_range = [-0.02,1.0],var2_label = 'Cumulative FAM (-)'):
+    os.chdir(Dir_CA)  
+    publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
+    sns.set_style('ticks')
+    store=pd.HDFStore(filename)
+    var1=store['mortality_025_grid']
+    var2=store['mortality_025_grid']
+    var2=var2.cumsum(0)
+    var1=var1[(var1.index.year>=start_year) &\
+      (var1.index.year<=end_year)]  
+    var2=var2[(var2.index.year>=start_year) &\
+      (var2.index.year<=end_year)]
+    
+    fig, ax = plt.subplots(1,1)
+    x,y,z1=clean_xy(var1.values.flatten(),var2.values.flatten(), thresh = 0.0)
+    plot=ax.scatter(x,y,marker='o',c=z1,cmap=cmap,edgecolor='',alpha=alpha, s=20)
+    xd=np.linspace(min(x),max(x),100)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+    ax.plot(xd,intercept + xd*slope,'b--',lw=1, label = 'All')
+    ax.fill_between(xd,intercept + xd*(slope-std_err),intercept + xd*(slope+std_err),\
+                    color='b',alpha=0.5)
+    
+    x,y,z=clean_xy(var1.values.flatten(),var2.values.flatten(), thresh = 0.1)
+    xd=np.linspace(min(x),max(x),100)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+    ax.plot(xd,intercept + xd*slope,'m--',lw=1, label = 'FAM>0.1')
+    ax.fill_between(xd,intercept + xd*(slope-std_err),intercept + xd*(slope+std_err),\
+                    color='m',alpha=0.5)
+    
+    ax.legend()
+    ax.set_xlim(var1_range)
+    ax.set_ylim(var2_range)
+    ax.set_xlabel(var1_label)
+    ax.set_ylabel(var2_label)
+#    ax.annotate('$R^2=%0.2f$'%r_value**2, xy=(0.10, 0.90), xycoords='axes fraction',\
+#                ha='left',va='top')
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(plot, cax=cax,ticks=[min(z1),max(z1)])
+    cax.annotate('Point\ndensity',xy=(0,1.06), xycoords='axes fraction',\
+                ha='left')
+    cax.set_yticklabels(['Low', 'High'])
+    cax.tick_params(axis='y', right='off',pad=0)
+    plt.savefig(Dir_ms_fig+'/Figure_S2.tiff', dpi = dpi, bbox_inches="tight")
+    return r_value**2
+
+def plot_north_south_map():
+    sns.set_style("ticks")
+    os.chdir(Dir_CA)
+    Df=pd.HDFStore(filename)['mortality_025_grid']
+    Df_north, Df_south=select_north_south_grids(Df)
+    Df.loc[:,Df_north.columns] = 'orange'
+    Df.loc[:,Df_south.columns] = 'green'
+    
+    ### plotting
+    latcorners=np.array([33,42.5])
+    loncorners=np.array([-124.5,-117]) 
+    lats,lons=supply_lat_lon()
+    
+    publishable.set_figsize(1*zoom, 1*zoom, aspect_ratio =1)
+    fig, ax = plt.subplots()
+    fig, ax, m = plot_map(lats,lons, var =Df.loc['2005-01-01',:],\
+             latcorners = latcorners, loncorners = loncorners,\
+             enlarge = 1, marker_factor = 0.6, \
+             cmap = 'YlGnBu', markercolor = 'r',\
+             fill = 'white', background = None,\
+             height = 1, width = 1,\
+             drawcoast = False, drawcountries = False,\
+             drawstates = False, drawcounties = False,\
+             resolution = 'l', fig = fig, ax = ax,\
+             shapefilepath = Dir_CA+'/CA',shapefilename = 'CA')
+#    m.readshapefile(Dir_CA+'/CA','CA',drawbounds=True, color='black')
+
+    
+    
 def main():
-#    plot_RWC_definition(data_source1='vod_pm') #main
-#    plot_rwc_cwd() #main
-#    plot_boxplot() #supplementary
-#    plot_timeseries_maps() #main
-#    Df = plot_importance() #main
-#    plot_leaf_habit_thresh()
-#    plot_leaf_habit_mort()
-#    plot_FAM_TPA_corr() #supplementary
-#    plot_regression( ) #main
-#    plot_pdf() #supplementary
-#    plot_grid() #supplementary
-    plot_heatmap(cmap = 'PRGn_r') #supplementary
+#    plot_RWC_definition(data_source1='vod_pm') #Figure 1
+#    plot_timeseries_maps() #Figure 3
+#    plot_importance(filename ='rf_sensitivity_importance', \
+#                    width = 0.9, height = 2, savename = 'Figure_5') #Figure 5
+#    plot_importance(filename ='rf_sensitivity_importance_trimmed',\
+#                    width = 1.1, height = 0.8, savename = 'Figure_S5') #Figure S5
+    Df =plot_importance(filename ='rf_sensitivity_importance_lagged', \
+                    width = 0.9, height = 2, savename = 'Figure_S6') #Figure S6
+#    plot_regression( ) #Figure 4
+#    plot_grid() #Figure S3
+#    plot_heatmap(cmap = 'PRGn_r') #Figure S4
+#    plot_north_south_thresh(data='RWC',data_label="RWC (-)")
+#    plot_rwc_cwd_all() #Figure 2
+#    plot_inc_cumm_corr() #Figure S2
+#    plot_north_south_map() # Figure S1
+#    plot_rwc_cwd() 
+#    plot_boxplot() 
 #    plot_LPDR2()
 #    plot_ever_deci()
-#    plot_north_south_thresh(data='RWC',data_label="RWC (-)")
-#    plot_rwc_cwd_all()
-
+#    plot_pdf()
+#    plot_leaf_habit_thresh()
+#    plot_leaf_habit_mort()
+#    plot_FAM_TPA_corr()
 if __name__ == '__main__':
     main()
