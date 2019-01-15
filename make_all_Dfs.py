@@ -191,9 +191,9 @@ os.chdir(Dir_CA)
 
 
 ##--------------------------------------------------------
-#store=pd.HDFStore(Dir_CA+'/data_subset.h5')
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 #for lag in [1,2]: 
-#    Df=store['RWC']
+#    Df=store['RWC_matched']
 #    Df_shift=Df.shift(lag)
 #    Df_shift.index.name=Df_shift.index.name+'_lag_%d'%lag
 #    store[Df_shift.index.name]=Df_shift  
@@ -418,10 +418,27 @@ os.chdir(Dir_CA)
 #store.close()
 
 #=======================================================================
-store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
-for lag in [1,2]: 
-    Df=store['RWC']
-    Df_shift=Df.shift(lag)
-    Df_shift.index.name=Df_shift.index.name+'_lag_%d'%lag
-    store[Df_shift.index.name]=Df_shift 
-store.close()
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#for lag in [1,2]: 
+#    Df=store['RWC_matched']
+#    Df_shift=Df.shift(lag)
+#    Df_shift.index.name=Df_shift.index.name+'_lag_%d'%lag
+#    store[Df_shift.index.name]=Df_shift 
+#store.close()
+##=================RWC===================================================
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df = store['vod_pm_matched']
+#RWC=RWC(Df, start_year = 2009)
+#RWC.index.name = "RWC"
+#store["RWC_matched"] = RWC
+#store.close()
+###=================GC forest cover===========================================
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df = store['forest_cover']
+#fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname='GC_subset',index_col=3) 
+#for index in Df.index:
+#    Df.loc[index] = fc.gc_fc
+#store[Df.index.name]=Df
+#store.close()
+
+

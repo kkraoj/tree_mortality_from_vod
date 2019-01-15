@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy.ma as ma
 import scipy.io
 import os
-#import arcpy
+import arcpy
 from osgeo import gdal
 from osgeo import gdal_array
 from osgeo import osr
@@ -319,12 +319,40 @@ def append_color_importance(Df):
             'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
     veg=['mortality_025_grid','live_basal_area','LAI_sum',\
             'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height','forest_cover']
-    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std','location']
+    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std',\
+          'location', 'soil_type', 'silt_fraction','sand_fraction','clay_fraction',\
+          'twi', 'twi_mean','twi_std']
     Df['color']=None
     Df.loc[Df.index.isin(climate),'color']=blue
     Df.loc[Df.index.isin(veg),'color']=green
     Df.loc[Df.index.isin(topo),'color']=brown
     return Df
+
+def variable_type_color(variable):
+    green = '#1b9e77'
+    brown = '#d95f02'
+    blue = '#7570b3'
+    climate=['CWD','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+             'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
+            'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
+    veg=['mortality_025_grid','live_basal_area','LAI_sum',\
+            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height','forest_cover']
+    topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std',\
+          'location', 'soil_type', 'silt_fraction','sand_fraction','clay_fraction',\
+          'twi', 'twi_mean','twi_std']
+#    climate =[x.lower() for x in climate]
+#    veg =[x.lower() for x in veg]
+#    topo =[x.lower() for x in topo]
+    
+    if variable in climate:
+        return blue
+    elif variable in veg:
+        return green
+    elif variable in topo:
+        return brown
+    else:
+        return None
+
 
 def adjust_spines(ax, spines):
     for loc, spine in ax.spines.items():
@@ -403,6 +431,7 @@ def select_years(start_year =2009, end_year = 2015, *Dfs):
     '''
     Function will take unknown number of timeseries indexed pandas and 
     output dataframes within start_year and end_year
+    | both included
     '''
     if len(Dfs)<=1:
         Df=Dfs[0]
@@ -473,7 +502,7 @@ def scatter_threshold(x, y, ax,  panel_label, cmap = 'viridis', alpha = 1, scatt
     ax.axvline(popt[0],linestyle='--',linewidth=2,color='k')
     ymin,ymax=y_range[0], y_range[1]
     ax.add_patch(Rectangle([popt[0]-perr[0],ymin],2*perr[0],ymax-ymin,\
-                          hatch='//////', color='k', lw=0, fill=False,zorder=10))
+                          hatch='///', color='k', lw=0, fill=False,zorder=10))
     ax.set_ylim(y_range)
     ax.set_xlim(x_range)
     residuals = y- piecewise_linear(x, *popt)
@@ -486,6 +515,35 @@ def scatter_threshold(x, y, ax,  panel_label, cmap = 'viridis', alpha = 1, scatt
                 ha='left',va='bottom')
 #    ax.set_aspect('equal')
     return plot_data, z
+
+def breakpoint(Df=None,  x=None, y='FAM', ax=None):
+
+    x,y,z=clean_xy(Df[x].values.flatten(),Df[y].values.flatten(), thresh = -1)
+
+    guess = (np.mean(x),0.05,1e-1,1e-1)
+    popt , pcov = optimize.curve_fit(piecewise_linear, x, y, guess)
+    perr = np.sqrt(np.diag(pcov))
+    xd = np.linspace(min(x), max(x), 1000)
+    ax.plot(xd, piecewise_linear(xd, *popt),'r--',linewidth=1)
+    ax.fill_between(xd, piecewise_linear(xd, popt[0],popt[1],popt[2]-perr[2],popt[3]-perr[3]),\
+                    piecewise_linear(xd, popt[0],popt[1],popt[2]+perr[2],popt[3]+perr[3]), \
+                                    color='r',alpha=0.6)
+#    ax.axvline(popt[0],linestyle='--',linewidth=2,color='k')
+#    ymin,ymax=y_range[0], y_range[1]
+#    ax.add_patch(Rectangle([popt[0]-perr[0],ymin],2*perr[0],ymax-ymin,\
+#                          hatch='//////', color='k', lw=0, fill=False,zorder=10))
+#    ax.set_ylim(y_range)
+#    ax.set_xlim(x_range)
+    residuals = y- piecewise_linear(x, *popt)
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((y-np.mean(y))**2)
+    r_squared = 1 - (ss_res / ss_tot)
+#    print('R-squared for %s = %0.2f; Threshold = %0.2f +- %0.2f'%(panel_label, r_squared, popt[0], perr[0]))
+    
+#    ax.annotate('%s'%panel_label, xy=(0.01, 1.03), xycoords='axes fraction',\
+#                ha='left',va='bottom')
+#    ax.set_aspect('equal')
+    return r_squared
     
 def select_forest_type_grids(forest, fortype, *Dfs):
     if len(Dfs)<=1:
@@ -509,7 +567,7 @@ def get_marker_size(ax,fig,loncorners,grid_size=0.25,marker_factor=1.):
     marker_size=width*grid_size/np.diff(loncorners)[0]*marker_factor
     return marker_size
 
-def plot_map(lats,lons, var =None,\
+def plot_map(lats=None,lons=None, var =None,\
              fig = None, ax = None,\
              latcorners = [-90,90], loncorners = [-180, 180],\
              enlarge = 1, marker_factor = 1, \
@@ -519,7 +577,7 @@ def plot_map(lats,lons, var =None,\
              drawcoast = True, drawcountries = False,\
              drawstates = False, drawcounties = False,\
              shapefilepath = None,shapefilename = None,\
-             resolution = 'l'):
+             resolution = 'l', proj = 'cyl', vmin = 0, vmax = 1, **kwargs):
     """
     usage:
     fig, ax = plot_map(lats,lons,var)
@@ -529,13 +587,15 @@ def plot_map(lats,lons, var =None,\
         cax = fig.add_axes([0.17, 0.3, 0.03, 0.15])
         fig.colorbar(plot,ax=ax,cax=cax)
     """
+    for key, value in kwargs.iteritems():
+        print "%s == %s" %(key,value)
     if fig == None:
         fig, ax = plt.subplots(figsize=(width*enlarge,height*enlarge))
     marker_size=get_marker_size(ax,fig,loncorners, marker_factor)
-    m = Basemap(projection='cyl',lat_0=45,lon_0=0,resolution=resolution,\
+    m = Basemap(projection=proj,lat_0=45,lon_0=0,resolution=resolution,\
                     llcrnrlat=latcorners[0],urcrnrlat=latcorners[1],\
                     llcrnrlon=loncorners[0],urcrnrlon=loncorners[1],\
-                    ax=ax)
+                    ax=ax, **kwargs)
     if drawcoast:
         m.drawcoastlines()
     if drawcountries:
@@ -549,12 +609,12 @@ def plot_map(lats,lons, var =None,\
     m.drawmapboundary(fill_color=background)
     m.fillcontinents(color=fill,zorder=0)
     if var is not None:
-        m.scatter(lons, lats, s=marker_size,c=var,cmap=cmap,\
-                        marker='s')
+        plot = m.scatter(lons, lats, s=marker_size,c=var,cmap=cmap,\
+                        marker='s', vmin = vmin, vmax = vmax)
     else:
-        m.scatter(lons, lats, s=marker_size,c=markercolor,\
+        plot = m.scatter(lons, lats, s=marker_size,c=markercolor,\
                         marker='s')
-    return fig, ax, m
+    return fig, ax, m, plot
     
     
     

@@ -13,8 +13,9 @@ library(ranger)
 library(ggplot2)
 library(dplyr)
 library(SimDesign)
-write.files = 1
-
+require('collections')
+write.files = FALSE
+#7
 ```
 
 
@@ -22,12 +23,11 @@ write.files = 1
 ```{r, fig.width = 4, fig.height = 4}
 ## make 1 model run for prediction
 
-data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+data=read.csv('D:/Krishna/Project/data/rf_data_base_model.csv',row.names=1)
 train.fraction = 0.7
 FAM.threshold = 0.05
-seed=16
+seed=28
 set.seed(seed=seed)
-
 data.high=data[data$FAM>FAM.threshold,]
 data.low=data[data$FAM<=FAM.threshold,]
 train.high.ind=sample(1:nrow(data.high),size = train.fraction*dim(data.high)[1])
@@ -37,9 +37,14 @@ train.data=data[train.ind,]
 test.data=data[-train.ind,]
 testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
 testY=test.data[ , which(names(test.data) %in% c("FAM"))]
+weights = train.data$FAM
+var.weights = c(0.4,0.4,0.4,1,0.1,0.1,0.1,0.4,0.6,0.3,0.1,0.1,0.1,0.4,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.3,0.1,0.1,0.1,0.1,0.05,0.05,0.05,0.05)
+# var.weights = c(0.18, 0.33, 0.27, 1.00, 0.68, 0.70, 0.41, 0.28, 0.15, 0.66, 0.48,
+       # 0.77, 0.51, 0.18, 0.00, 0.14, 0.04, 0.29, 0.14, 0.22, 0.37, 0.34,
+       # 0.25, 0.65, 0.66, 0.49, 0.71, 0.71, 0.66, 0.85)
 
-fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 100)
-
+fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
+# fit=holdoutRF(FAM~.,data=train.data,seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
 train.r.squared = fit$r.squared
 pred=predict(fit,testX,type='se')
 SS.total      <- sum((testY - mean(train.data$FAM))^2)
@@ -53,9 +58,6 @@ test.data['predicted_FAM']=predict(fit,test.data[-c(1)])$predictions  # best mod
 FAM.cutoff=0.00
 test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
 bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=FALSE))
-sprintf('Test R-squared = %0.2f',test.rsq)
-sprintf('Relative Bias = %0.2f',bias.model)
-
 
 journal_theme=theme(plot.title = element_text(hjust = 0.5),text = element_text(size=12), legend.position=c(0.12,0.75))
 p<-ggplot(data=test.data, aes(x=FAM, y=predicted_FAM, group=1))
@@ -68,6 +70,9 @@ p+geom_point(aes(color=RWC),shape=19,size=2)+journal_theme+
   annotate('text',x=0.35,y=0.40,label=paste('1:1 line'))+
   annotate('text',x=0.35,y=0.27,label=paste('R ^ 2 ==',round(test.rsq,2)),parse = T,size=5,color='maroon')
   # annotate('text',x=0.4,y=0.22,label=paste('Omitted',drops[1]),size=5,color='maroon',hjust=1)
+
+sprintf('Test R-squared = %0.2f',test.rsq)
+sprintf('Relative Bias = %0.2f',bias.model)
 
 if (write.files)
   {
@@ -83,8 +88,10 @@ if (write.files)
 
 ```{r, fig.width = 8, fig.height = 4, eval=True}
 ## make 960 runs for importance 
-
-data=read.csv('D:/Krishna/Project/data/rf_data.csv',row.names=1)
+# model_type = 'base_model'
+# model_type = 'trimmed_model'
+model_type = 'lagged_model'
+data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv',model_type),row.names=1)
 max.iter=10
 imp.frame=data.frame(row.names=1:(dim(data)[2]-1))
 counter=0
@@ -104,7 +111,8 @@ for (train.fraction in seq(0.3,0.8,0.1))
     testY=test.data[ , which(names(test.data) %in% c("FAM"))]
     for (seed in 1:max.iter)
     {
-      fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 100)
+      fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=FALSE, num.trees = 100, respect.unordered.factors = 'order')
+      # fit=holdoutRF(FAM~.,data=data,seed=seed,keep.inbag=FALSE, num.trees = 100, respect.unordered.factors = 'order')
       imp=data.frame(fit$variable.importance)
       colnames(imp)=counter
       imp.frame=cbind(imp.frame,imp)
@@ -130,8 +138,8 @@ g+geom_col(fill='dodgerblue3')+
 
 if (write.files)
   {
-  write.csv(importance, file = "D:/Krishna/Project/data/rf_sensitivity_importance_lagged.csv")
-  write.csv(rank, file = "D:/Krishna/Project/data/rf_sensitivity_rank.csv")
+  write.csv(importance, file = sprintf("D:/Krishna/Project/data/rf_sensitivity_importance_%s.csv",model_type))
+  # write.csv(rank, file = "D:/Krishna/Project/data/rf_sensitivity_rank.csv")
   }
 
 ```

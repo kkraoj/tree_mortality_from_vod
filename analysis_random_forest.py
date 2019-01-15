@@ -13,7 +13,10 @@ from dirs import Dir_CA
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 from sklearn import tree
-def rf_assemble(year_range,*dfs):
+def rf_assemble(year_range,input_sources):
+    dfs=range(len(input_sources))
+    for i in range(len(input_sources)):
+        dfs[i]=store[input_sources[i]]
     if len(dfs)==1:
         dfs=[dfs]
     out=pd.DataFrame(index=range(dfs[0].shape[1]*(year_range[-1]-year_range[0]+1)))
@@ -34,14 +37,21 @@ def rf_remove_nan(df):
     df.dropna(inplace=True)
 #    df.index=range(df.shape[0])
     return df
+
 #base model
-input_sources=['mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
-'LAI_025_grid_win','RWC', 'aspect_mean', 'aspect_std', 'canopy_height',\
+base_model_sources=['mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
+'LAI_025_grid_win','RWC_matched', 'aspect_mean', 'aspect_std', 'canopy_height',\
  'cwd','elevation_mean','elevation_std',\
  'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
  'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
-'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win','location']
+'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win','location', 'silt_fraction',\
+ 'sand_fraction','twi_mean','twi_std']
 year_range=range(2009,2016)
+###### static sources only
+#input_sources=['mortality_025_grid','aspect_mean', 'aspect_std', 'canopy_height',\
+# 'elevation_mean','elevation_std',\
+# 'forest_cover','location', 'silt_fraction',\
+# 'sand_fraction','twi']
 
 ### sources till 2016 available
 #input_sources=['mortality_025_grid','LAI_025_grid_sum',\
@@ -52,15 +62,15 @@ year_range=range(2009,2016)
 #'PEVAP_sum','EVP_win','PEVAP_win','location']
 #year_range=range(2009,2017)
 
-####uncorrelated sources r-sqaured < 0.25
-#input_sources=['mortality_025_grid',"RWC","cwd","elevation_std","elevation_mean","ppt_sum","location",\
-#          "aspect_mean","aspect_std","vsm_sum","canopy_height", 'EVP_win']
-#year_range=range(2009,2016)
+##uncorrelated sources |r| < 0.50
+trimmed_model_sources=['mortality_025_grid',"RWC_matched","cwd","elevation_std",\
+                       "elevation_mean","ppt_sum","location",\
+                       "aspect_mean","aspect_std","vsm_sum","canopy_height",\
+                       'EVP_win', 'twi_mean']
 
 ### base model + lagged RWC
 #
-input_sources.extend(('RWC_lag_1', 'RWC_lag_2'))
-
+lagged_model_sources = base_model_sources+['RWC_lag_1', 'RWC_lag_2']
 os.chdir(Dir_CA)
 store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 ###----------filling RWC values for 2009
@@ -71,25 +81,23 @@ store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 #Df.index.name = 'RWC_lag_1_fill'
 #store[Df.index.name]=Df
 ####=====================================
-     
-inputs=range(len(input_sources))
-for i in range(len(input_sources)):
-    inputs[i]=store[input_sources[i]]
-Df=rf_assemble(year_range,*inputs)
 
-# lagged model: predictors: 2009 - 2015, FAM: 2010 - 2016
+for counter, input_sources in enumerate([base_model_sources, \
+                         trimmed_model_sources, lagged_model_sources]):
+    Df=rf_assemble(year_range,input_sources)
+    Df=rf_remove_nan(Df)
+    if counter==0:
+        Df.to_csv('D:/Krishna/Project/data/rf_data_base_model.csv')
+    elif counter==1:
+        Df.to_csv('D:/Krishna/Project/data/rf_data_trimmed_model.csv')
+    else:
+        Df.to_csv('D:/Krishna/Project/data/rf_data_lagged_model.csv')
+
+#### lagged model [DONT USE]: predictors: 2009 - 2015, FAM: 2010 - 2016
 #Df=rf_assemble(range(2009,2015),*inputs)
 #Df_lead = rf_assemble(range(2010,2016),*inputs)
 #Df['FAM'] = Df_lead['FAM']
 ##----------------------------------------------------------
-#Df['missing_data']=Df.T.isnull().sum()
-#Df.loc[Df['missing_data']>=1,'missing_data']='yes'
-#Df.loc[Df['missing_data']==1,'missing_data']='yes'
-#Df.loc[Df['missing_data']==0,'missing_data']='no'
-##----------------------------------------------------------
-Df=rf_remove_nan(Df)
-Df.to_csv('D:/Krishna/Project/data/rf_data.csv')
-
 ### Misc,---------------------------------------------------------------
 #subprocess.call("/usr/bin/Rscript --vanilla /D:/Krishna/Project/codes/rf_model.rmd", shell=True)
 #Null analysis-----------------------------------------------------------------
