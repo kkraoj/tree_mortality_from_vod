@@ -425,13 +425,21 @@ os.chdir(Dir_CA)
 #    Df_shift.index.name=Df_shift.index.name+'_lag_%d'%lag
 #    store[Df_shift.index.name]=Df_shift 
 #store.close()
-##=================RWC===================================================
+#=================extending RWC calc to before 2009===========================
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df = store['vod_pm_matched']
+#RWC=RWC(Df, start_year = 2005)
+#RWC.index.name = "RWC"
+#store["RWC_matched_2009_onwards"] = store["RWC_matched"] 
+#store["RWC_matched"] = RWC
+##store.close()
+#=================resetting RWC calc to since 2009===========================
 #store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 #Df = store['vod_pm_matched']
 #RWC=RWC(Df, start_year = 2009)
 #RWC.index.name = "RWC"
 #store["RWC_matched"] = RWC
-#store.close()
+#store.remove("RWC_matched_2009_onwards")
 ###=================GC forest cover===========================================
 #store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 #Df = store['forest_cover']
@@ -440,5 +448,33 @@ os.chdir(Dir_CA)
 #    Df.loc[index] = fc.gc_fc
 #store[Df.index.name]=Df
 #store.close()
+#####=================RWC/LAI===========================
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df = store["RWC_matched"]/store["LAI_025_grid_sum"]
+#Df = Df.loc[(Df.index.year>=2009)&(Df.index.year<=2015),:]
+#Df.index.name = "rwc_lai"
+#store[Df.index.name] = Df
+#store.close()
+#####================RWC lag defn with VOD only until previous year ======
+from datetime import timedelta
+store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+vod = store['vod_pm_matched']
+vod.head()
+for lag in [1,2]:
+    Df = pd.DataFrame()
+    for year in range(2009,2016):
+        ## remember needs to be fixed to 2003. 
+        rwc_lag = RWC(vod.loc[vod.index.year<=(year-lag),:], start_year=2005)
+        rwc_lag.index+=pd.DateOffset(years=lag)
+        rwc_lag.index.name = "RWC_lag_%d"%lag
+        Df = Df.append(rwc_lag.loc[rwc_lag.index.year==year])
+        store["RWC_lag_%s_new"%lag] = rwc_lag
+#####=================RWC = VOD/LAI===========================
+#store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
+#Df = store['vod_lai']
+#Df = Df.loc[(Df.index.year<=2015),:]
+#rwc_new = RWC(Df, start_year=2005)### change to 2003 later
+#rwc_new.index.name = "RWC"
+#store['rwc_vod_lai'] = rwc_new
 
-
+#

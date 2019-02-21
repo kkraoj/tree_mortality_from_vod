@@ -47,7 +47,7 @@ from sklearn.svm import SVR
 from IPython.display import display, HTML
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib_scalebar.scalebar import ScaleBar
-
+from sklearn.metrics import mean_squared_error
     
 MyDir = 'D:/Krishna/Project/data/RS_data'  #Type the path to your data
 Dir_CA='D:/Krishna/Project/data/Mort_Data/CA'
@@ -170,7 +170,7 @@ def build_df_from_arcpy(table, columns='all',dtype=None, index_col = None):
     for row in cursor:
         data=pd.DataFrame([row.getValue(x) for x in columns],index=columns).T # removed dtype
         Df=Df.append(data)
-    Df=Df.astype(dtype)
+#    Df=Df.astype(dtype)
     if index_col != None:
         Df.index = Df[index_col]
         Df.drop(index_col, axis = 1, inplace = True)
@@ -247,13 +247,14 @@ def mean_anomaly(Df): #mean of anomaly
 
 def RWC(Df,upper_quantile=0.95,start_month=7, months_window=3,start_year=2009):
     Df=Df[Df.index.year>=start_year]
+    df_name = Df.index.name
     Df=Df.loc[(Df.index.month>=start_month) & (Df.index.month<start_month+months_window)]
     out=(Df.groupby(Df.index.year).quantile(0.5)-Df.quantile(1-upper_quantile))/\
         (Df.quantile(upper_quantile)-Df.quantile(1-upper_quantile))
     out[(out>1.0)]=np.nan
     out[(out<0.0)]=np.nan   
     out.index=pd.to_datetime(out.index,format='%Y')
-    out.index.name='RWC'
+    out.index.name=df_name
     out.columns.name='gridID'
     return out
 
@@ -318,7 +319,8 @@ def append_color_importance(Df):
              'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
             'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
     veg=['mortality_025_grid','live_basal_area','LAI_sum',\
-            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height','forest_cover']
+            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height',\
+            'forest_cover', 'ndwi_sum','ndwi_win', 'rwc_lai']
     topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std',\
           'location', 'soil_type', 'silt_fraction','sand_fraction','clay_fraction',\
           'twi', 'twi_mean','twi_std']
@@ -336,7 +338,8 @@ def variable_type_color(variable):
              'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
             'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win']
     veg=['mortality_025_grid','live_basal_area','LAI_sum',\
-            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height','forest_cover']
+            'LAI_win','RWC','RWC_lag_1','RWC_lag_2','canopy_height',\
+            'forest_cover', 'ndwi_sum','ndwi_win']
     topo=['aspect_mean', 'aspect_std','elevation_mean','elevation_std',\
           'location', 'soil_type', 'silt_fraction','sand_fraction','clay_fraction',\
           'twi', 'twi_mean','twi_std']
@@ -394,11 +397,14 @@ def remove_vod_affected(Df):
     Df.loc[aff_start:aff_end]=np.nan
     return Df
 
-def supply_lat_lon(landcover = 'GC_subset'):
+def supply_lat_lon(landcover = 'GC_subset', return_gridID = False):
     fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname=landcover)
     lat=fc.y
     lon=fc.x
-    return lat,lon
+    if return_gridID:
+        return lat, lon, fc.gridID
+    else:
+        return lat,lon
 
 def select_high_mort_grids(Df,remove_nans=False):
     high_mort = [ 33,  73,  83,  84,  91,  97, 104, 105, 117, 118, 128, 129, 130,
@@ -516,25 +522,33 @@ def scatter_threshold(x, y, ax,  panel_label, cmap = 'viridis', alpha = 1, scatt
 #    ax.set_aspect('equal')
     return plot_data, z
 
-def breakpoint(Df=None,  x=None, y='FAM', ax=None):
+def breakpoint(Df=None,  xcol=None, ycol='FAM', ax=None, \
+               ):
 
-    x,y,z=clean_xy(Df[x].values.flatten(),Df[y].values.flatten(), thresh = -1)
-
-    guess = (np.mean(x),0.05,1e-1,1e-1)
+    if xcol =='location':
+        guess = (50,0.1,1e-3,1e-3)    
+        Df = Df.astype(float)
+    else:
+        guess = (Df[xcol].mean(),0.05,1/Df[xcol].mean(),1/Df[xcol].mean())
+    x,y,z=clean_xy(Df[xcol].values.flatten(),Df[ycol].values.flatten(), thresh = -1)
     popt , pcov = optimize.curve_fit(piecewise_linear, x, y, guess)
     perr = np.sqrt(np.diag(pcov))
     xd = np.linspace(min(x), max(x), 1000)
-    ax.plot(xd, piecewise_linear(xd, *popt),'r--',linewidth=1)
-    ax.fill_between(xd, piecewise_linear(xd, popt[0],popt[1],popt[2]-perr[2],popt[3]-perr[3]),\
-                    piecewise_linear(xd, popt[0],popt[1],popt[2]+perr[2],popt[3]+perr[3]), \
-                                    color='r',alpha=0.6)
+    ypred = piecewise_linear(xd, *popt)
+    ax.plot(xd, ypred,color = 'k', alpha = 0.8,\
+            linestyle = '--',linewidth=1)
+#    ax.fill_between(xd, piecewise_linear(xd, popt[0],popt[1],popt[2]-perr[2],popt[3]-perr[3]),\
+#                    piecewise_linear(xd, popt[0],popt[1],popt[2]+perr[2],popt[3]+perr[3]), \
+#                                    color='grey',alpha=0.4)
 #    ax.axvline(popt[0],linestyle='--',linewidth=2,color='k')
 #    ymin,ymax=y_range[0], y_range[1]
 #    ax.add_patch(Rectangle([popt[0]-perr[0],ymin],2*perr[0],ymax-ymin,\
 #                          hatch='//////', color='k', lw=0, fill=False,zorder=10))
 #    ax.set_ylim(y_range)
 #    ax.set_xlim(x_range)
-    residuals = y- piecewise_linear(x, *popt)
+    ypred = piecewise_linear(x, *popt)
+    residuals = y-ypred
+    rmse = np.sqrt(mean_squared_error(y,ypred))
     ss_res = np.sum(residuals**2)
     ss_tot = np.sum((y-np.mean(y))**2)
     r_squared = 1 - (ss_res / ss_tot)
@@ -543,7 +557,7 @@ def breakpoint(Df=None,  x=None, y='FAM', ax=None):
 #    ax.annotate('%s'%panel_label, xy=(0.01, 1.03), xycoords='axes fraction',\
 #                ha='left',va='bottom')
 #    ax.set_aspect('equal')
-    return r_squared
+    return r_squared, rmse
     
 def select_forest_type_grids(forest, fortype, *Dfs):
     if len(Dfs)<=1:
@@ -606,15 +620,69 @@ def plot_map(lats=None,lons=None, var =None,\
         m.drawcounties()
     if shapefilepath:
         m.readshapefile(shapefilepath,shapefilename,drawbounds=True, color='black')
-    m.drawmapboundary(fill_color=background)
     m.fillcontinents(color=fill,zorder=0)
+    m.drawmapboundary(fill_color=background, zorder = 0)
+
     if var is not None:
         plot = m.scatter(lons, lats, s=marker_size,c=var,cmap=cmap,\
-                        marker='s', vmin = vmin, vmax = vmax)
+                        marker='s', vmin = vmin, vmax = vmax, edgecolor = 'lightgrey',\
+                        linewidth = 1)
     else:
         plot = m.scatter(lons, lats, s=marker_size,c=markercolor,\
                         marker='s')
-    return fig, ax, m, plot
+    return fig, ax, m
+
+def seasonal_transform(data,season= None):
+    start_month=7
+    months_window=3
+    if season=='win':
+        start_month=1
+    data=data.loc[(data.index.month>=start_month) & (data.index.month<start_month+months_window)]
+    data.index.name+='_'+season
+    return data
     
-    
+var_dict = {'cwd':r'$\rm CWD$',
+            'ppt_sum':r'$\rm P_{sum}$',
+            'ppt_win':r'$\rm P_{win}$',
+            'tmax_sum':r'$\rm T_{max,sum}$',
+            'tmax_win':r'$\rm T_{max,win}$',
+            'tmean_sum':r'$\rm T_{sum}$',
+            'tmean_win':r'$\rm T_{win}$',
+            'vpdmax_sum':r'$\rm VPD_{max,sum}$',
+            'vpdmax_win':r'$\rm VPD_{max,win}$',
+            'evp_sum':r'$\rm AET_{sum}$',
+            'pevap_sum':r'$\rm PET_{sum}$',
+            'evp_win':r'$\rm AET_{win}$',
+            'pevap_win':r'$\rm PET_{win}$',
+            'vsm_sum':r'$\rm SM_{sum}$',
+            'vsm_win':r'$\rm SM_{win}$',
+            'mortality_025_grid':r'$\rm FAM$',
+            'live_basal_area':r'$\rm Tree\ density$',
+            'lai_sum':r'$\rm LAI_{sum}$',
+            'lai_win':r'$\rm LAI_{win}$',
+            'rwc':r'$\rm RWC$',
+            'rwc_lag_1':r'$\rm RWC_{1\ year\ lag}$',
+            'rwc_lag_2':r'$\rm RWC_{2\ years\ lag}$',
+            'canopy_height':r'$\rm Canopy\ height$',
+            'forest_cover':r'$\rm Forest\ cover$',
+            'ndwi_sum':r'$\rm NDWI_{sum}$',
+            'ndwi_win':r'$\rm NDWI_{win}$',
+            'rwc_lai':r'$\rm RWC/LAI_{sum}$',
+            'aspect_mean':r'$\rm Aspect$',
+            'aspect_std':r'$\rm Aspect_{sd}$',
+            'elevation_mean':r'$\rm Elevation$',
+            'elevation_std':r'$\rm Elevation_{sd}$',
+            'location':r'$\rm Location$',
+            'soil_type':'Soil type',
+            'silt_fraction':r'$\rm Silt$',
+            'sand_fraction':r'$\rm Sand$',
+            'clay_fraction':r'$\rm Clay$',
+            'twi':r'$\rm TWI$',
+            'twi_mean':r'$\rm TWI$',
+            'twi_std':r'$\rm TWI_{sd}$'}
+
+def select_non_ocean_pixels(Df, landcover = 'GC_subset_no_ocean'):
+    fc=pd.read_excel(MyDir+'/Forest/forest_cover.xlsx',sheetname=landcover)
+    Df = Df.loc[:,fc.gridID]
+    return Df
     

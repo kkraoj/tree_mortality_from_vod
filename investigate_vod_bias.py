@@ -37,12 +37,12 @@ df = pd.read_pickle('vod_world_3').astype(np.float)
 #### ignore satellite changeover time
 #df = df.loc[df.index.year>=2009,:]
 df.loc[(df.index >= '2011-10-01')&(df.index <= '2012-07-31'),:] = np.nan
-#factor = 1e-5
-#fid = open(MyDir+'/anci/MLLATLSB','rb');
-#lat= np.fromfile(fid,dtype=np.int32).reshape((586,1383))*factor
-#fid = open(MyDir+'/anci/MLLONLSB','rb');
-#lon= np.fromfile(fid,dtype=np.int32).reshape((586,1383))*factor
-#fid.close()
+factor = 1e-5
+fid = open(MyDir+'/anci/MLLATLSB','rb');
+lat= np.fromfile(fid,dtype=np.int32).reshape((586,1383))*factor
+fid = open(MyDir+'/anci/MLLONLSB','rb');
+lon= np.fromfile(fid,dtype=np.int32).reshape((586,1383))*factor
+fid.close()
 #bias = df.loc[df.index.year>=2012,:].mean()-\
 #             df.loc[df.index.year<=2011,:].mean()
 #bias = mkgrid_global(bias)
@@ -76,37 +76,53 @@ df.loc[(df.index >= '2011-10-01')&(df.index <= '2012-07-31'),:] = np.nan
 #plt.legend(bbox_to_anchor=(1.05, 1), loc=2)
 #plt.show()
 ####---------------------------------------- ks test stats
-for year in [2003, 2006, 2009]:
-    y1=year;y2=year+2
-    y3=year+3;y4=year+5
-    sample1 = df.loc[(df.index.year>=y1)&(df.index.year<=y2),:].values.flatten()
-    sample1= sample1[~np.isnan(sample1)]
-    if year==2009:
-        y3=year+4;y4=year+6
-    sample2 = df.loc[(df.index.year>=year+1)&(df.index.year<=year+3),:].values.flatten()
-    sample2= sample2[~np.isnan(sample2)]
-    sample1 = decrease_res(sample1)
-    sample2 = decrease_res(sample2)
-    kstat,pvalue = stats.ks_2samp(sample1, sample2)
-    print('(%s-%s) & (%s-%s) are different. kstat = %0.4f, pvalue = %0.4f)'\
-         %(y1,y2,y3,y4, kstat, pvalue))
-#    stats.ks_2samp(np.random.randn(100000), np.random.randn(100000))
-#    print('Mean = %0.4f'%gg.mean())
-#    print(stats.ttest_1samp(gg,0.0, axis =None ))
-#    print(stats.ttest_1samp(np.random.randn(100000),0.0, axis =None ))
-#    (gg<0).sum()/float(len(gg))
+#for year in [2003, 2006, 2009]:
+#    y1=year;y2=year+2
+#    y3=year+3;y4=year+5
+#    sample1 = df.loc[(df.index.year>=y1)&(df.index.year<=y2),:].values.flatten()
+#    sample1= sample1[~np.isnan(sample1)]
+#    if year==2009:
+#        y3=year+4;y4=year+6
+#    sample2 = df.loc[(df.index.year>=year+1)&(df.index.year<=year+3),:].values.flatten()
+#    sample2= sample2[~np.isnan(sample2)]
+#    sample1 = decrease_res(sample1)
+#    sample2 = decrease_res(sample2)
+#    kstat,pvalue = stats.ks_2samp(sample1, sample2)
+#    print('(%s-%s) & (%s-%s) are different. kstat = %0.4f, pvalue = %0.4f)'\
+#         %(y1,y2,y3,y4, kstat, pvalue))
+##    stats.ks_2samp(np.random.randn(100000), np.random.randn(100000))
+##    print('Mean = %0.4f'%gg.mean())
+##    print(stats.ttest_1samp(gg,0.0, axis =None ))
+##    print(stats.ttest_1samp(np.random.randn(100000),0.0, axis =None ))
+##    (gg<0).sum()/float(len(gg))
 
 ######---------------------------------------------- africa timeseries
-#lat_in = -11.69
-#lon_in = 24.13
-#np.where(np.abs(lat-lat_in)<=1e-2)
+fid = open(MyDir+'/'+'anci/globland_r','rb');
+EASE_r = np.fromfile(fid,dtype=np.int16)
+fid.close()
+
+fid = open(MyDir+'/'+'anci/globland_c','rb');
+EASE_s = np.fromfile(fid,dtype=np.int16)
+fid.close()
+
+
+lat_in = -11.69
+lon_in = 24.13
+lat_in = 41.375
+lon_in = -121.625	 
+
+row = np.argmin(np.abs(lat-lat_in), axis = 0)[0]
 #lat[352,:]
-#np.where(np.abs(lon-lon_in)<=1e-1)
+col = np.argmin(np.abs(lon-lon_in), axis = 1)[0]
 #lon[:,784]
-#for i in range(209091):
-#    if (EASE_r[i] == 352)&(EASE_s[i] == 784):
-#        print(i)##173066
 
-#fig, ax = plt.subplots(figsize = (6,2))
-#df.loc[:,173066].rolling(30,min_periods=1).mean().plot(linestyle = '-',color = 'k')
+for i in range(209091):
+    if (EASE_r[i] == row)&(EASE_s[i] == col):
+        index = i
+        break
 
+fig, ax = plt.subplots(figsize = (6,2))
+df.loc[:,index].rolling(30,min_periods=1).mean().plot(linestyle = '-',color = 'k')
+data = df.loc[:,index]
+data = data.loc[(data.index.year>=2003)&(df.index < '2011-10-02')]
+data.to_pickle('gridID333_AMSRE_VOD')

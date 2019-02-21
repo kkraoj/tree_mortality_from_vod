@@ -17,7 +17,7 @@ os.chdir("D:/Krishna/Project/data/Mort_Data/Misc_data")
 #store=pd.HDFStore(filename)
 #data_source1='/vod'
 #df=store[data_source1]
-#df = pd.read_pickle('vod_world_3')
+df = pd.read_pickle('vod_world_3')
 #df = df.astype(float)
 #data = df.loc[:,173066].rolling(30,min_periods=1).mean()
 #data.dropna(inplace = True)
@@ -138,24 +138,24 @@ def cdf_match(ref, data):
 #plt.legend(bbox_to_anchor=(1.05, 1), loc=2)
 #plt.show()
 
-### plotting histograms as lines
-years = {'2003-2005':'s', \
-         '2006-2008':'o',\
-         '2009-2010':'^',\
-         '2013-2015':'v',\
-         '2003-2010':'p'}
-fig, ax = plt.subplots(figsize =  (3,3))
-counter = 0
-for year in sorted(years.keys()):
-    data = pd.read_pickle(year)
-    sensor = " (AMSR-E)"
-    if year == '2013-2015':
-        sensor = " (AMSR-2)"
-    data.plot(ax=ax,label = year+sensor, marker = years[year], \
-              markevery = (counter,300), markersize = 5, lw = 1)
-    counter+=60
-ax.set_xlim(0,3)
-plt.legend()
-plt.show()
-#plt.savefig(Dir_ms_fig+'/Figure_S8.tiff', dpi = 300, bbox_inches="tight")
-    
+#### plotting histograms as lines
+#years = {'2003-2005':'s', \
+#         '2006-2008':'o',\
+#         '2009-2010':'^',\
+#         '2013-2015':'v',\
+#         '2003-2010':'p'}
+#fig, ax = plt.subplots(figsize =  (3,3))
+#counter = 0
+#for year in sorted(years.keys()):
+#    data = pd.read_pickle(year)
+#    sensor = " (AMSR-E)"
+#    if year == '2013-2015':
+#        sensor = " (AMSR-2)"
+#    data.plot(ax=ax,label = year+sensor, marker = years[year], \
+#              markevery = (counter,300), markersize = 5, lw = 1)
+#    counter+=60
+#ax.set_xlim(0,3)
+#plt.legend()
+#plt.show()
+##plt.savefig(Dir_ms_fig+'/Figure_S8.tiff', dpi = 300, bbox_inches="tight")
+#    
