@@ -23,8 +23,8 @@ write.files = FALSE
 ```{r, fig.width = 4, fig.height = 4}
 # ## make 1 model run for prediction
 # model_type = 'lagged_model'
-model_type = 'base_model'
-# model_type = 'base_model_north'
+# model_type = 'base_model'
+model_type = 'base_model_north'
 data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv', model_type),row.names=1)
 train.fraction = 0.7
 FAM.threshold = 0.05
@@ -99,11 +99,11 @@ if (write.files)
 
 ```{r, fig.width = 4, fig.height = 8, eval=True}
 ## make 960 runs for importance 
-# model_type = 'base_model'
+model_type = 'base_model'
 # model_type = 'trimmed_model'
 # model_type = 'lagged_model'
 # model_type = 'lai_model'
-model_type = 'base_model_north'
+# model_type = 'base_model_north'
 # model_type = 'base_model_south'
 data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv',model_type),row.names=1)
 max.iter=10

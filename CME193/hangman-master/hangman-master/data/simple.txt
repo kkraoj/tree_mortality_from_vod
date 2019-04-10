@@ -1,4 +1,0 @@
-car
-foothill
-turn
-code
