@@ -1,6 +1,6 @@
 # Satellite-based Vegetation Optical Depth as an Indicator of Drought-driven Tree Mortality
 
-This repository contains `python` and `R` scripts to estimate drought-driven tree mortality in California as part of research article in  in Journal Remote Sensing of Environment [Satellite-based vegetation optical depth as an indicator of drought-driven tree mortality](https://www.sciencedirect.com/science/article/pii/S0034425719301208)
+This repository contains `python` and `R` scripts to estimate drought-driven tree mortality in California as part of research article in the Journal Remote Sensing of Environment- [Satellite-based vegetation optical depth as an indicator of drought-driven tree mortality](https://www.sciencedirect.com/science/article/pii/S0034425719301208)
 
 ## Repository details
 
