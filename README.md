@@ -32,6 +32,7 @@ All data used were obtained from public sources.
 
 ## License
 Please cite the following paper if you use any data or analysis from this study:
+
 _Rao, K., Anderegg, W.R.L., Sala, A., Martínez-Vilalta, J. & Konings, A.G. (2019). Satellite-based vegetation optical depth as an indicator of drought-driven tree mortality. Remote Sens. Environ., 227, 125–136._
 
 ## Acknowledgments
