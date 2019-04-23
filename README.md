@@ -4,11 +4,14 @@ This repository contains `python` and `R` scripts to estimate drought-driven tre
 
 ## Repository details
 
-### Data Files:
-1. All data files are under `random_forest_data` folder.
+### Data:
+1. All data files are under `data` folder.
+   1. The input data files containing 32 variables for the random forest model are named as `rf_data_` followed by the name of the respective model setup (base model, trimmed model, etc.)
+   1. The predicted fractional area of mortality from the random forest analysis is provided in `rf_predicted.csv`
+   1. The feature importance from random forest analysis is provided in files `rf_sensitivity` followed by the model name. 
 
 
-### Processing scripts:
+### Scripts:
 The repository consists of scripts to perform the following-
 
 1. Download and regrid the remote sensing data (scripts available in the folder `download_and_regrid`)
