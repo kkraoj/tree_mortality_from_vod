@@ -5,7 +5,8 @@ This repository contains `python` and `R` scripts to estimate drought-driven tre
 ## Repository details
 
 ### Data Files:
-1. All data files are under `random_forest_data` folder. 
+1. All data files are under `random_forest_data` folder.
+
 
 ### Processing scripts:
 The repository consists of scripts to perform the following-
@@ -71,8 +72,7 @@ The data compiled and used the analysis were obtained from the following sources
 
 1. Clone the repository using `git clone https://github.com/kkraoj/tree_mortality_from_vod.git`
 1. Open plot_functions.py and change `CA_Dir` variable to point to the folder where `random_forest_data` folder is located
-1. Run `plot_functions.py` by uncommenting any of the functions at the end of the script to reproduce the figures you wish.
-
+1. Run `plot_functions.py` by uncommenting any of the functions at the end of the script to reproduce the figures you wish
 
 ## License
 Please cite the following paper if you with to use any data or analyses from this study:
