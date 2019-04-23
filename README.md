@@ -16,10 +16,10 @@ The repository consists of scripts to perform the following-
 
 1. Download and regrid the remote sensing data (scripts available in the folder `download_and_regrid`)
 1. Perform statistical analysis such as breakpoint threshold identification and random forests regressions
-   - Breakpoint analysis is performed right before producing the scatter plot in `plot_rwc_cwd_all()` in `plot_functions.py`
-   - Random forest analysis is performed in `R` using the files in the folder `random_forest_analysis` - 
-     -  The `analysis_random_forest.py` script is used to compile all the downloaded and regridded data into uniform rows and columns. The output is saved in the folder `random_forest_data`.
-     - The `rf_model_tuning.rmd` file is used to perform the random forest analysis. The output is saved in the folder `random_forest_data`.
+   1. Breakpoint analysis is performed right before producing the scatter plot in `plot_rwc_cwd_all()` in `plot_functions.py`
+   1. Random forest analysis is performed in `R` using the files in the folder `random_forest_analysis` - 
+      1. The `analysis_random_forest.py` script is used to compile all the downloaded and regridded data into uniform rows and columns. The output is saved in the folder `random_forest_data`.
+      1. The `rf_model_tuning.rmd` file is used to perform the random forest analysis. The output is saved in the folder `random_forest_data`.
 1. Plot the data to reproduce the figures presented in the research article using `plot_functions.py`
 
 All data used were obtained from public sources.
