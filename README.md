@@ -83,6 +83,10 @@ Please cite the following paper if you with to use any data or analyses from thi
 
 Thanks to the anonymous reviewers for helping us improve the manuscript
 
+## Issues?
+
+Check the `Issues` tab for troubleshooting or create a new issue.
+
 ## References
 
 1. Simard, M., Pinto, N., Fisher, J.B. & Baccini, A. (2011). Mapping forest canopy height globally with spaceborne lidar. J. Geophys. Res. Biogeosciences, 116, 1–12.
