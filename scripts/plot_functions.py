@@ -1952,7 +1952,7 @@ save_fig = True
 def main():
 #    plot_RWC_definition_v2(data_source1='vod_pm_matched',grid_cell = 182, save = False) #Figure 1
 #    plot_rwc_cwd_all()  #Figure 2
-#    plot_timeseries_maps() #Figure 3
+    plot_timeseries_maps() #Figure 3
 #    plot_regression() #Figure 4
 #    Df = plot_importance(filename ='rf_sensitivity_importance_base_model', \
 #                    width = 0.9, height = 2.4, save = True, savename = 'Figure_5') #Figure 5
