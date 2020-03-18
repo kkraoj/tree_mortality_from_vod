@@ -9,7 +9,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from dirs import Dir_CA, select_north_south_grids
+#from dirs import Dir_CA, select_north_south_grids
+### commented above line because dirs also import osgeo and I am having a problem fixing it
+Dir_CA='D:/Krishna/projects/vod_from_mortality/codes/data/Mort_Data/CA'
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 from sklearn import tree
@@ -103,24 +105,31 @@ store=pd.HDFStore(Dir_CA+'/data_subset_GC.h5')
 #store[Df.index.name]=Df
 ####=====================================
 
-for counter, input_sources in enumerate([base_model_sources, \
-                         trimmed_model_sources, lagged_model_sources,\
-                         lai_model_sources]):
-    Df=rf_assemble(year_range,input_sources)
-    Df=rf_remove_nan(Df)
-    if counter==0:
-        Df.to_csv('D:/Krishna/Project/data/rf_data_base_model.csv')
-    elif counter==1:
-        Df.to_csv('D:/Krishna/Project/data/rf_data_trimmed_model.csv')
-    elif counter ==2:
-        Df.to_csv('D:/Krishna/Project/data/rf_data_lagged_model.csv')
-    else:
-        Df.to_csv('D:/Krishna/Project/data/rf_data_lai_model.csv')
+save = False
+if save:
 
+    for counter, input_sources in enumerate([base_model_sources, \
+                             trimmed_model_sources, lagged_model_sources,\
+                             lai_model_sources]):
+        Df=rf_assemble(year_range,input_sources)
+        Df=rf_remove_nan(Df)
+        if counter==0:
+            Df.to_csv('D:/Krishna/projects/vod_from_mortality/codes/data/rf_data_base_model_with_year.csv')
+        elif counter==1:
+            Df.to_csv('D:/Krishna/Project/data/rf_data_trimmed_model.csv')
+        elif counter ==2:
+            Df.to_csv('D:/Krishna/Project/data/rf_data_lagged_model.csv')
+        else:
+            Df.to_csv('D:/Krishna/Project/data/rf_data_lai_model.csv')
+    
+    
+    Df_n, Df_s=rf_assemble_north_south(year_range,base_model_sources)
+    Df_n=rf_remove_nan(Df_n)
+    Df_s=rf_remove_nan(Df_s)
+    Df_n.to_csv('D:/Krishna/Project/data/rf_data_base_model_north.csv')
+    Df_s.to_csv('D:/Krishna/Project/data/rf_data_base_model_south.csv')
+    
+#%%
 
-Df_n, Df_s=rf_assemble_north_south(year_range,base_model_sources)
-Df_n=rf_remove_nan(Df_n)
-Df_s=rf_remove_nan(Df_s)
-Df_n.to_csv('D:/Krishna/Project/data/rf_data_base_model_north.csv')
-Df_s.to_csv('D:/Krishna/Project/data/rf_data_base_model_south.csv')
+## need to add year column to rf dataframe for Jean Peierre's student
 
