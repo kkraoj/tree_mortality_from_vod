@@ -10,9 +10,9 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-from dirs import Dir_CA, Dir_ms_fig
+#from dirs import Dir_CA, Dir_ms_fig
 import seaborn as sns
-os.chdir("D:/Krishna/Project/data/Mort_Data/Misc_data")
+os.chdir(r"D:\Krishna\projects\vod_from_mortality\codes\data\Mort_Data\Misc_data")
 #filename = 'vod_world.h5'
 #store=pd.HDFStore(filename)
 #data_source1='/vod'
@@ -23,11 +23,11 @@ df = pd.read_pickle('vod_world_3')
 #data.dropna(inplace = True)
 #ref = data.loc[data.index < '2011-10-01']
 #data = data.loc[data.index > '2012-07-31']
-#ref = df.loc[(df.index.year<=2010),:].values.flatten()
-#ref = ref[~np.isnan(ref)]
-#data = df.loc[(df.index.year>=2013),:].values.flatten()
-#data = data[~np.isnan(data)]
-#ref = ref[ref>0];data = data[data>0]
+ref = df.loc[(df.index.year<=2010),:].values.flatten()
+ref = ref[~np.isnan(ref)]
+data = df.loc[(df.index.year>=2013),:].values.flatten()
+data = data[~np.isnan(data)]
+ref = ref[ref>0];data = data[data>0]
 ## plot time series
 def plot_ts(ref, data):
     fig, ax = plt.subplots(figsize =  (6,1.5))
@@ -53,9 +53,9 @@ def plot_cdf(ref, data, ref_label = 'AMSRE', data_label = "AMSR2"):
     return n_ref,bins_ref, n_data, bins_data
 
 def match(df = None):
-    os.chdir(Dir_CA)
-    ref = pd.HDFStore("cdf_match.h5")["AMSRE"]
-    data = pd.HDFStore("cdf_match.h5")["AMSR2"]
+#    os.chdir(Dir_CA)
+    ref = pd.HDFStore(r"D:\Krishna\projects\vod_from_mortality\codes\data\Mort_Data\CA\cdf_match.h5")["AMSRE"]
+    data = pd.HDFStore(r"D:\Krishna\projects\vod_from_mortality\codes\data\Mort_Data\CA\cdf_match.h5")["AMSR2"]
     if df==None:
         store = pd.HDFStore('data_subset_GC.h5')
         df = store['vod_pm']
@@ -70,10 +70,10 @@ def match(df = None):
 #            if new_val - val > 0.1:
 #                print('[INFO] Shift > 0.1')
             df.loc[i,j] = new_val
-    old_df = store['vod_pm']
-    old_df = old_df.loc[old_df.index.year<=2011,:]
-    new_df = pd.concat([old_df,df], axis =0)
-    store['vod_pm_matched'] = new_df
+#    old_df = store['vod_pm']
+#    old_df = old_df.loc[old_df.index.year<=2011,:]
+#    new_df = pd.concat([old_df,df], axis =0)
+#    store['vod_pm_matched'] = new_df
     return df
     
     

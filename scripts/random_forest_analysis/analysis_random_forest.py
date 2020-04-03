@@ -132,4 +132,19 @@ if save:
 #%%
 
 ## need to add year column to rf dataframe for Jean Peierre's student
-
+#
+#year = dfs[0].copy()
+#
+#for row in range(year.shape[0]):
+#    year.iloc[row,:] = int(year.index.year[row])
+#    
+#year = year.astype(int)
+#store['year'] = year
+#     
+#base_model_sources=['year','mortality_025_grid','BPH_025_grid','LAI_025_grid_sum',\
+#'LAI_025_grid_win','RWC_matched', 'aspect_mean', 'aspect_std', 'canopy_height',\
+# 'cwd','elevation_mean','elevation_std',\
+# 'forest_cover','ppt_sum','ppt_win','tmax_sum','tmax_win',\
+# 'tmean_sum','tmean_win','vpdmax_sum','vpdmax_win','EVP_sum',\
+#'PEVAP_sum','EVP_win','PEVAP_win','vsm_sum','vsm_win','location', 'silt_fraction',\
+# 'sand_fraction','twi_mean','twi_std', 'ndwi_sum','ndwi_win']

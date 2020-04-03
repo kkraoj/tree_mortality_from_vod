@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 def mkgrid_global(x):
     #Load ancillary EASE grid row and column data, where <MyDir> is the path to 
     #wherever the globland_r and globland_c files are located on your machine.
-    MyDir = 'D:/Krishna/Project/data/RS_data'  #Type the path to your data
+    MyDir = 'D:/Krishna/projects/vod_from_mortality/codes/data/RS_data'  #Type the path to your data
     fid = open(MyDir+'/'+'anci/globland_r','rb');
     EASE_r = np.fromfile(fid,dtype=np.int16)
     fid.close()

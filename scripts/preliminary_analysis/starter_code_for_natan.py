@@ -29,10 +29,10 @@ pass_type = 'D';             #Type the overpass: 'A' or 'D'
 param = 'tc10';           #Type the parameter
 map_factor = 1e4
 
-fid = open(MyDir+'/anci/MLLATLSB','rb');
+fid = open(r'D:\Krishna\projects\vod_from_mortality\codes\data\RS_data\anci\MLLATLSB','rb');
 late= np.fromfile(fid,dtype=np.int32).reshape((586,1383))
 fid.close()
-fid = open(MyDir+'/anci/MLLONLSB','rb');
+fid = open(r'D:\Krishna\projects\vod_from_mortality\codes\data\RS_data\anci\MLLONLSB','rb');
 lone= np.fromfile(fid,dtype=np.int32).reshape((586,1383))
 fid.close()
 y=np.asarray(late)*1e-5 ###convert using scale factor
