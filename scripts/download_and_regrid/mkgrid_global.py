@@ -17,17 +17,17 @@ function [gridout, EASE_r, EASE_s] =
 '''
 import numpy as np
 import matplotlib.pyplot as plt
-
-
+import os
+ 
 def mkgrid_global(x):
     #Load ancillary EASE grid row and column data, where <MyDir> is the path to 
     #wherever the globland_r and globland_c files are located on your machine.
-    MyDir = 'D:/Krishna/Project/data/RS_data'  #Type the path to your data
-    fid = open(MyDir+'/'+'anci/globland_r','rb');
+    dir_data = r"D:\Krishna\projects\vod_from_mortality\codes\data"
+    fid = open(os.path.join(dir_data,r'RS_data\anci\globland_r'),'rb');
     EASE_r = np.fromfile(fid,dtype=np.int16)
     fid.close()
     
-    fid = open(MyDir+'/'+'anci/globland_c','rb');
+    fid = open(os.path.join(dir_data,r'RS_data\anci\globland_c'),'rb');
     EASE_s = np.fromfile(fid,dtype=np.int16)
     fid.close()
 #    plt.latlon = True
