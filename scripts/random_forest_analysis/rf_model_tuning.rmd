@@ -20,14 +20,16 @@ write.files = FALSE
 
 
 
-```{r, fig.width = 4, fig.height = 4}
+```{r, model predictions, fig.width = 4, fig.height = 4}
 # ## make 1 model run for prediction
 # model_type = 'lagged_model'
 # model_type = 'base_model'
-model_type = 'base_model_north'
-data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv', model_type),row.names=1)
-train.fraction = 0.7
-FAM.threshold = 0.05
+model_type = 'base_model_north' ## random model name to keep track of different models
+data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv', model_type),row.names=1) ## csv file of rows and columns where columns represent response and features (variable to be predicted and variables used to predict something) and rows represent examples (data points)
+train.fraction = 0.7 ## use only 70% of data to train
+FAM.threshold = 0.05 ##Hyperparameter used for splitting the data. SInce FAM (the response variable) is highly skewed, this way of spllitting the data ensures that enough number of high FAM data points are present in train and test data. 
+
+## split data
 seed=28
 set.seed(seed=seed)
 data.high=data[data$FAM>FAM.threshold,]
@@ -37,9 +39,10 @@ train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
 train.ind=c(train.high.ind,train.low.ind)
 train.data=data[train.ind,]
 test.data=data[-train.ind,]
-testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
-testY=test.data[ , which(names(test.data) %in% c("FAM"))]
-weights = train.data$FAM
+
+testX=test.data[ , -which(names(test.data) %in% c("FAM"))] ## select only features. thes are predictors
+testY=test.data[ , which(names(test.data) %in% c("FAM"))] ##this is response
+weights = train.data$FAM ##optional. This is used to assist the model training. Weights are inversely proportional to the mean absolute cross correlation of respective variable with all other variable. If a variable to correlated with all other variables, its weight will be low. 
 if (model_type == 'lagged_model'){
   var.weights = c(0.2,0.2,0.2,1,0.1,0.1,0.1,0.4,0.6,0.3,0.1,0.1,0.1,0.4,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.3,0.9,0.1,0.1,0.1,0.05,0.05,0.0,0.05, 0.1, 0.9, 1,1)
 } else {
@@ -47,11 +50,11 @@ if (model_type == 'lagged_model'){
   
 }
 
-
 # var.weights = c(0.18, 0.33, 0.27, 1.00, 0.68, 0.70, 0.41, 0.28, 0.15, 0.66, 0.48,
        # 0.77, 0.51, 0.18, 0.00, 0.14, 0.04, 0.29, 0.14, 0.22, 0.37, 0.34,
        # 0.25, 0.65, 0.66, 0.49, 0.71, 0.71, 0.66, 0.85)
 
+## Fit the model. 
 fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
 # fit=holdoutRF(FAM~.,data=train.data,seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
 train.r.squared = fit$r.squared
@@ -97,8 +100,9 @@ if (write.files)
 
 
 
-```{r, fig.width = 4, fig.height = 8, eval=True}
-## make 960 runs for importance 
+```{r, feature importance, fig.width = 4, fig.height = 8, eval=True}
+
+## make 960 runs for mean and uncertainty in variable importance (error bars)
 model_type = 'base_model'
 # model_type = 'trimmed_model'
 # model_type = 'lagged_model'
