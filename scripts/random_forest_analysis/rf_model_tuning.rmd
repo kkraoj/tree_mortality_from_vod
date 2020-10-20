@@ -1,12 +1,11 @@
 ---
-title: "Assignment 4"
+title: "RF analysis for fractional area of mortality"
 author: "Krishna Rao"
 date: "March 13, 2017"
 output: pdf_document
 ---
 
-#Problem 1
-##Part A
+
 ```{r}
 rm(list=ls())
 library(ranger)
@@ -20,14 +19,15 @@ write.files = FALSE
 
 
 
-```{r, fig.width = 4, fig.height = 4}
+```{r, model predictions, fig.width = 4, fig.height = 4}
 # ## make 1 model run for prediction
 # model_type = 'lagged_model'
 # model_type = 'base_model'
-model_type = 'base_model_north'
-data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv', model_type),row.names=1)
-train.fraction = 0.7
-FAM.threshold = 0.05
+model_type = 'base_model_north' ## random model name to keep track of different models
+data=read.csv(sprintf('D:/Krishna/Project/data/rf_data_%s.csv', model_type),row.names=1) ## csv file of rows and columns where columns represent response and features (variable to be predicted and variables used to predict something) and rows represent examples (data points)
+train.fraction = 0.7 ## use only 70% of data to train
+FAM.threshold = 0.05 ##Hyperparameter used for splitting the data. SInce FAM (the response variable) is highly skewed, this way of spllitting the data ensures that enough number of high FAM data points are present in train and test data. 
+## split data
 seed=28
 set.seed(seed=seed)
 data.high=data[data$FAM>FAM.threshold,]
@@ -37,21 +37,19 @@ train.low.ind=sample(1:nrow(data.low),size = train.fraction*dim(data.low)[1])
 train.ind=c(train.high.ind,train.low.ind)
 train.data=data[train.ind,]
 test.data=data[-train.ind,]
-testX=test.data[ , -which(names(test.data) %in% c("FAM"))]
-testY=test.data[ , which(names(test.data) %in% c("FAM"))]
-weights = train.data$FAM
+testX=test.data[ , -which(names(test.data) %in% c("FAM"))] ## select only features. thes are predictors
+testY=test.data[ , which(names(test.data) %in% c("FAM"))] ##this is response
+weights = train.data$FAM ##optional. This is used to assist the model training. Weights are inversely proportional to the mean absolute cross correlation of respective variable with all other variable. If a variable to correlated with all other variables, its weight will be low. 
 if (model_type == 'lagged_model'){
   var.weights = c(0.2,0.2,0.2,1,0.1,0.1,0.1,0.4,0.6,0.3,0.1,0.1,0.1,0.4,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.3,0.9,0.1,0.1,0.1,0.05,0.05,0.0,0.05, 0.1, 0.9, 1,1)
 } else {
   var.weights = c(0.4,0.4,0.4,1,0.1,0.1,0.1,0.4,0.6,0.3,0.1,0.1,0.1,0.4,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.3,0.1,0.1,0.1,0.1,0.05,0.05,0.05,0.05, 0.1, 0.08)
   
 }
-
-
 # var.weights = c(0.18, 0.33, 0.27, 1.00, 0.68, 0.70, 0.41, 0.28, 0.15, 0.66, 0.48,
        # 0.77, 0.51, 0.18, 0.00, 0.14, 0.04, 0.29, 0.14, 0.22, 0.37, 0.34,
        # 0.25, 0.65, 0.66, 0.49, 0.71, 0.71, 0.66, 0.85)
-
+## Fit the model. 
 fit=ranger(FAM~.,data=train.data,importance="impurity",seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
 # fit=holdoutRF(FAM~.,data=train.data,seed=seed,keep.inbag=TRUE, num.trees = 400, min.node.size =5, split.select.weights = var.weights)
 train.r.squared = fit$r.squared
@@ -60,14 +58,11 @@ SS.total      <- sum((testY - mean(train.data$FAM))^2)
 SS.residual   <- sum((testY - pred$predictions)^2)
 SS.regression <- sum((pred$predictions - mean(train.data$FAM))^2)
 test.rsq <- 1 - SS.residual/SS.total
-
 data['predicted_FAM']=predict(fit,data[-c(1)])$predictions  # best model's predictions
 test.data['predicted_FAM']=predict(fit,test.data[-c(1)])$predictions  # best model's predictions
-
 FAM.cutoff=0.00
 test.data.subset=test.data[test.data$FAM>FAM.cutoff,]
 bias.model=mean(bias(test.data.subset$predicted_FAM,test.data.subset$FAM,relative=FALSE))
-
 journal_theme=theme(plot.title = element_text(hjust = 0.5),text = element_text(size=12), legend.position=c(0.12,0.75))
 p<-ggplot(data=test.data, aes(x=FAM, y=predicted_FAM, group=1))
 p+geom_point(aes(color=RWC),shape=19,size=2)+journal_theme+
@@ -79,11 +74,9 @@ p+geom_point(aes(color=RWC),shape=19,size=2)+journal_theme+
   annotate('text',x=0.35,y=0.40,label=paste('1:1 line'))+
   annotate('text',x=0.35,y=0.27,label=paste('R ^ 2 ==',round(test.rsq,2)),parse = T,size=5,color='maroon')
   # annotate('text',x=0.4,y=0.22,label=paste('Omitted',drops[1]),size=5,color='maroon',hjust=1)
-
 sprintf('Test R-squared = %0.2f',test.rsq)
 sprintf('Relative Bias = %0.4f',bias.model)
 sprintf('RMSE = %0.4f',sqrt(mean((test.data['predicted_FAM'] - testY)^2)))
-
 if (write.files)
   {
   if(model_type=='base_model'){
@@ -91,14 +84,13 @@ if (write.files)
     write.csv(test.data, file = "D:/Krishna/Project/data/rf_test_data.csv")
     write.csv(test.rsq, file = "D:/Krishna/Project/data/rf_test_rsq.csv")
   }}
-
 ```
 
 
 
 
-```{r, fig.width = 4, fig.height = 8, eval=True}
-## make 960 runs for importance 
+```{r, feature importance, fig.width = 4, fig.height = 8, eval=True}
+## make 960 runs for mean and uncertainty in variable importance (error bars)
 model_type = 'base_model'
 # model_type = 'trimmed_model'
 # model_type = 'lagged_model'
@@ -134,7 +126,6 @@ for (train.fraction in seq(0.3,0.8,0.1))
     }
   }
 }
-
 row.names(imp.frame)=row.names(imp)
 importance.mean=data.frame(apply(imp.frame, 1, mean))
 colnames(importance.mean)='mean'
@@ -142,20 +133,17 @@ importance.sd=data.frame(apply(imp.frame, 1, sd))
 colnames(importance.sd)='sd'
 importance=cbind(importance.mean,importance.sd)
 importance=importance[order(-importance$mean),]
-
 g=ggplot(importance,aes(x=reorder(row.names(importance),importance$mean),y=mean))
 g+geom_col(fill='dodgerblue3')+
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd))+
   coord_flip()+
   labs(y='Importance',x='Features',title='Feature importance chart')+
   theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
-
 if (write.files)
   {
   write.csv(importance, file = sprintf("D:/Krishna/Project/data/rf_sensitivity_importance_%s.csv",model_type))
   # write.csv(rank, file = "D:/Krishna/Project/data/rf_sensitivity_rank.csv")
   }
-
 ```
 
 
@@ -171,5 +159,3 @@ g+geom_col(fill='dodgerblue3')+
   labs(x='Features',y='Fraction of experiments feature is most important',title='Top most ranked features')+
   theme(plot.title = element_text(hjust = 0.5),text = element_text(size=15))
 ```
-
-
